@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated copies of Monaco/Pyodide (scripts/copy-runtime-assets.mjs).
+    "public/vendor/**",
   ]),
 ]);
 

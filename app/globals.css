@@ -1,26 +1,245 @@
 @import "tailwindcss";
 
+/* Dark mode follows the data-theme attribute set by the inline theme script. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --header-h: 3.5rem;
+
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-muted: #f1f3f6;
+  --surface-hover: #e9edf2;
+  --border: #e1e5eb;
+  --border-strong: #cdd3dc;
+  --fg: #0f1520;
+  --fg-muted: #4a5464;
+  --fg-subtle: #737d8d;
+  --accent: #3a57d6;
+  --accent-hover: #2f4bc4;
+  --accent-fg: #ffffff;
+  --accent-soft: rgb(58 87 214 / 0.09);
+  --success: #157a3d;
+  --success-soft: rgb(21 122 61 / 0.09);
+  --danger: #c22b2b;
+  --danger-soft: rgb(194 43 43 / 0.08);
+  --warning: #a35a07;
+  --warning-soft: rgb(196 120 10 / 0.11);
+  --code-bg: #f2f4f7;
+  --editor-bg: #ffffff;
+  --shadow: 0 1px 2px rgb(15 21 32 / 0.05), 0 1px 1px rgb(15 21 32 / 0.03);
+
+  /* Gamification tokens */
+  --xp: #b7791f;
+  --xp-soft: rgb(234 179 8 / 0.14);
+  --streak: #d9480f;
+  --streak-soft: rgb(249 115 22 / 0.12);
+  --achievement: #7048e8;
+  --achievement-soft: rgb(112 72 232 / 0.1);
+  --path-line: #d5dbe3;
+}
+
+[data-theme="dark"] {
+  --bg: #0b0d12;
+  --surface: #11141a;
+  --surface-muted: #171b22;
+  --surface-hover: #1d222b;
+  --border: #232832;
+  --border-strong: #313846;
+  --fg: #e6e9ef;
+  --fg-muted: #a1aab8;
+  --fg-subtle: #747e8d;
+  --accent: #7d92ff;
+  --accent-hover: #95a6ff;
+  --accent-fg: #0b0d12;
+  --accent-soft: rgb(125 146 255 / 0.12);
+  --success: #4ade80;
+  --success-soft: rgb(74 222 128 / 0.1);
+  --danger: #f87171;
+  --danger-soft: rgb(248 113 113 / 0.1);
+  --warning: #fbbf24;
+  --warning-soft: rgb(251 191 36 / 0.1);
+  --code-bg: #161a21;
+  --editor-bg: #0e1116;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  --xp: #facc15;
+  --xp-soft: rgb(250 204 21 / 0.12);
+  --streak: #fb923c;
+  --streak-soft: rgb(251 146 60 / 0.12);
+  --achievement: #a78bfa;
+  --achievement-soft: rgb(167 139 250 / 0.12);
+  --path-line: #2b313c;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-muted: var(--surface-muted);
+  --color-hover: var(--surface-hover);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-code: var(--code-bg);
+  --color-editor: var(--editor-bg);
+  --color-xp: var(--xp);
+  --color-xp-soft: var(--xp-soft);
+  --color-streak: var(--streak);
+  --color-streak-soft: var(--streak-soft);
+  --color-achievement: var(--achievement);
+  --color-achievement-soft: var(--achievement-soft);
+  --color-path: var(--path-line);
+  --shadow-card: var(--shadow);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  [data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+
+  dialog::backdrop {
+    background: rgb(5 8 14 / 0.45);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Home page variant chosen before first paint (see lib/learner/boot-script.ts). */
+html[data-learner="returning"] [data-show-for="new"],
+html:not([data-learner="returning"]) [data-show-for="returning"] {
+  display: none;
+}
+
+/* One-shot feedback animations. Durations collapse under prefers-reduced-motion. */
+@keyframes mascot-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes mascot-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-9px);
+  }
+  55% {
+    transform: translateY(0);
+  }
+  75% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes mascot-wave {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-16deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+  75% {
+    transform: rotate(-10deg);
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ring-in {
+  from {
+    box-shadow: 0 0 0 0 var(--accent-soft);
+  }
+  to {
+    box-shadow: 0 0 0 6px var(--accent-soft);
+  }
+}
+
+.mascot-pop {
+  animation: mascot-pop 0.35s ease-out both;
+}
+.mascot-bounce {
+  animation: mascot-bounce 0.9s ease-out 1;
+}
+.mascot-wave {
+  animation: mascot-wave 1.1s ease-in-out 0.3s 2;
+}
+.mascot-sparkle {
+  animation: mascot-pop 0.5s ease-out 0.15s both;
+}
+.rise-in {
+  animation: rise-in 0.3s ease-out both;
+}
+.ring-in {
+  animation: ring-in 0.6s ease-out both;
+}
+
+/* Monaco: keep the editor background aligned with the app surface. */
+.monaco-host .monaco-editor,
+.monaco-host .monaco-editor .margin,
+.monaco-host .monaco-editor-background {
+  background-color: var(--editor-bg) !important;
 }
