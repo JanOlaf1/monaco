@@ -17,7 +17,12 @@ Monaco Editor, run it, and get per-requirement feedback from automated tests.
   energy or purchases.
 - Progress, rewards, code drafts and optional personal target dates are saved in the
   browser. No account or database is required; an optional account (email and password)
-  syncs only skill levels and placement results across devices.
+  syncs only skill levels and placement results across devices. A backup file (Settings)
+  moves everything else between browsers.
+- Installable as a Progressive Web App (optional), with conservative offline support and
+  phone-friendly practice activities (predict the output, find the bug, complete the code,
+  reorder lines, choose an implementation, quick quizzes, review). See
+  [docs/PWA.md](docs/PWA.md).
 
 "Koodaamo" is a working name, defined once in `lib/i18n/dictionaries/*.ts` (`meta.siteName`).
 
@@ -60,6 +65,8 @@ The e2e tests use the locally installed Google Chrome by default. Without Chrome
   deploying the security rules and the emulator tests.
 - [docs/FIREBASE_PLAN.md](docs/FIREBASE_PLAN.md): what is synced today (competency only) and the
   plan for the other learner data.
+- [docs/PWA.md](docs/PWA.md): installation, the service worker and what works offline, mobile
+  practice, and backup and restore.
 
 ## Deployment
 

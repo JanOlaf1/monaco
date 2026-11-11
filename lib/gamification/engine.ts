@@ -161,6 +161,57 @@ export function applyStepPass(input: {
   };
 }
 
+/**
+ * Apply a correct practice answer (see lib/practice). The first correct answer
+ * to an activity earns `XP_REWARDS.practice` once; later answers earn nothing
+ * but still count as learning activity for the day's streak. Practice never
+ * completes exercises, so it does not count toward the daily exercise goal or
+ * exercise-based achievements, and it earns no crystals.
+ */
+export function applyPracticePass(input: {
+  state: GamificationState;
+  progress: ProgressState;
+  catalog: GamificationCatalog;
+  activityId: string;
+  now: Date;
+}): { state: GamificationState; rewards: Rewards } {
+  const { progress, catalog, activityId, now } = input;
+  const at = now.toISOString();
+  const day = toDateKey(now);
+  const before = input.state;
+  const awards: XpAward[] = [];
+  award(before, awards, { id: accomplishmentId.practice(activityId), kind: "practice", xp: XP_REWARDS.practice, at, day });
+
+  const firstActivityToday = !before.activeDays.includes(day);
+  const activeDays = addActiveDay(before.activeDays, day);
+  const streak = streakInfo(activeDays, day, before.bestStreak);
+  let state: GamificationState = {
+    ...before,
+    awards: { ...before.awards, ...Object.fromEntries(awards.map((entry) => [entry.id, entry])) },
+    activeDays,
+    bestStreak: streak.longest,
+  };
+  const result = unlockAchievements(state, progress, catalog, at);
+  state = result.state;
+
+  const xpBefore = totalXp(before.awards);
+  const xpAfter = totalXp(state.awards);
+  return {
+    state,
+    rewards: {
+      awards,
+      xpGained: xpAfter - xpBefore,
+      totalXp: xpAfter,
+      levelBefore: levelInfo(xpBefore).level,
+      levelAfter: levelInfo(xpAfter).level,
+      achievements: result.unlocked,
+      exerciseCompleted: false,
+      streak,
+      firstActivityToday,
+    },
+  };
+}
+
 /** Remember a failed check so fixing it later can unlock "Bug Hunter". */
 export function applyCheckFailure(state: GamificationState, exerciseId: string, stepId: string): GamificationState {
   const key = accomplishmentId.step(exerciseId, stepId);

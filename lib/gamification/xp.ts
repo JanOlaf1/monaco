@@ -15,9 +15,11 @@ export const XP_REWARDS = {
   checkpoint: 50,
   /** One-time bonus when every exercise in a chapter is complete. */
   chapter: 50,
+  /** First correct answer to a mobile practice activity (no crystals). */
+  practice: 5,
 } as const;
 
-export type AwardKind = "step" | "exercise" | "chapter";
+export type AwardKind = "step" | "exercise" | "chapter" | "practice";
 
 /** XP for completing an exercise of a given type. */
 export function exerciseXp(type: ExerciseType): number {
@@ -38,6 +40,7 @@ export const accomplishmentId = {
   step: (exerciseId: string, stepId: string) => `step:${exerciseId}:${stepId}`,
   exercise: (exerciseId: string) => `exercise:${exerciseId}`,
   chapter: (courseId: string, chapterId: string) => `chapter:${courseId}:${chapterId}`,
+  practice: (activityId: string) => `practice:${activityId}`,
 };
 
 export function totalXp(awards: Record<string, XpAward>): number {

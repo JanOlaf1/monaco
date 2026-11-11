@@ -5,6 +5,7 @@ import { recordAdventurePass } from "@/lib/adventure/hooks";
 import { publishRewards } from "@/lib/gamification/celebrations";
 import {
   applyCheckFailure,
+  applyPracticePass,
   applyStepPass,
   backfillFromProgress,
   type GamificationCatalog,
@@ -29,7 +30,11 @@ import { setDraftFile } from "@/lib/progress/drafts";
 import { recordStepPassed, recordVisit, setCurrentStep } from "@/lib/progress/progress";
 import { removeDeadline, setDeadline, targetKey, type DeadlineTarget } from "@/lib/schedule/deadlines";
 import type { PersistentStore, StoreSnapshot } from "@/lib/storage/persistent-store";
-import { competencyStore, draftsStore, gamificationStore, progressStore, scheduleStore } from "./stores";
+import { getPracticeActivity } from "@/lib/practice/content";
+import { evaluatePractice } from "@/lib/practice/evaluate";
+import { recordPracticePass } from "@/lib/practice/state";
+import type { PracticeResponse } from "@/lib/practice/types";
+import { competencyStore, draftsStore, gamificationStore, practiceStore, progressStore, scheduleStore } from "./stores";
 import { hasLearnerActivity } from "./summary";
 
 export function useStore<T>(store: PersistentStore<T>): StoreSnapshot<T> {
@@ -40,6 +45,7 @@ export const useProgress = () => useStore(progressStore);
 export const useSchedule = () => useStore(scheduleStore);
 export const useGamification = () => useStore(gamificationStore);
 export const useCompetency = () => useStore(competencyStore);
+export const usePractice = () => useStore(practiceStore);
 
 /** Only re-renders when hydration state changes (not on every keystroke). */
 export function useDraftsHydrated(): boolean {
@@ -95,6 +101,42 @@ export function recordCheckResult(input: {
   }).catch((error: unknown) => console.warn("[adventure] Could not record local rewards:", error));
   if (rewards) publishRewards(rewards);
   return rewards;
+}
+
+export interface PracticeOutcome {
+  correct: boolean;
+  /** Present for a correct answer once the result has been saved. */
+  rewards: Rewards | null;
+}
+
+/**
+ * Check a practice answer against the authoritative answer key and record a
+ * correct one. This is the only path that rewards practice: the UI cannot
+ * award XP without an answer that evaluates as correct, and the XP for an
+ * activity is granted once (its accomplishment id is unique).
+ */
+export function recordPracticeAnswer(input: {
+  catalog: GamificationCatalog;
+  activityId: string;
+  response: PracticeResponse;
+}): PracticeOutcome {
+  const activity = getPracticeActivity(input.activityId);
+  if (!activity) return { correct: false, rewards: null };
+  const correct = evaluatePractice(activity, input.response);
+  if (!correct) return { correct, rewards: null };
+  const stores = [progressStore, gamificationStore, practiceStore];
+  if (!stores.every((store) => store.getSnapshot().hydrated)) return { correct, rewards: null };
+  const now = new Date();
+  practiceStore.update((state) => recordPracticePass(state, activity.id, now.toISOString()));
+  const progress = progressStore.getSnapshot().value;
+  let rewards: Rewards | null = null;
+  gamificationStore.update((state) => {
+    const result = applyPracticePass({ state, progress, catalog: input.catalog, activityId: activity.id, now });
+    rewards = result.rewards;
+    return result.state;
+  });
+  if (rewards) publishRewards(rewards);
+  return { correct, rewards };
 }
 
 /**

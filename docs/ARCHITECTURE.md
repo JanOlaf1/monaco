@@ -18,6 +18,9 @@ lib/learning/           Proficiency levels, placement scoring, recommendations (
 content/placement/      Placement checks per runnable language (data only)
 lib/sync/               Cloud sync: document schema, deterministic merge, engine, domain list
 lib/firebase/, lib/account/   Optional Firebase Auth + Firestore Lite (lazy), account state
+lib/pwa/, public/sw.js  Install prompt, connectivity, service worker registration and caching
+lib/practice/, content/practice/  Mobile practice activities, answer checking, results store
+lib/backup/             Backup export, validation and additive import
 lib/i18n/               Locales, typed UI dictionaries, formatting helpers
 lib/progress/, lib/schedule/   Pure learner-state logic (progress, drafts, deadlines)
 lib/storage/, lib/learner/     Persistence adapter, stores, hooks, learner summary
@@ -31,7 +34,11 @@ e2e-cloud/, tests/emulators/  Account and sync tests against the Firebase Emulat
 Routes: `/[lang]` (home), `/[lang]/courses` (catalog), `/[lang]/courses/[courseId]` (visual
 learning path), `/[lang]/courses/[courseId]/[exerciseId]` (workspace), `/[lang]/placement/[courseId]`
 (optional placement check), `/[lang]/progress` (XP level, streak, goal, skill levels, achievements)
-and `/[lang]/plan` (target dates). The header navigation is Learn / Courses / Progress.
+and `/[lang]/plan` (target dates). The header navigation is Learn / Courses / Practice / Progress
+plus a Settings icon; on phones the same destinations move to a bottom bar (`MobileNav`), which is
+hidden in the workspace. `/[lang]/practice` holds the mobile practice activities, `/[lang]/settings`
+installation, offline information, theme, backup/restore and the account link, and `/[lang]/offline`
+is the service worker's fallback page (see [PWA.md](PWA.md)).
 `/[lang]/collection` contains the optional Code Archipelago cosmetics, quests and new achievements,
 linked from the learner home and Progress page.
 
@@ -182,6 +189,9 @@ Learner code never runs on the server or in the main page context. Worker isolat
   become active days; no other days are invented.
 - The competency store (`koodaamo:v1:competency`, version 1) holds the learning proficiency per
   language — see the next section. It is separate from every other store and never rewrites them.
+- The practice store (`koodaamo:v1:practice`) holds the first and latest correct answer per
+  practice activity; practice XP lives in the gamification store as `practice:<activityId>`
+  awards (see [PWA.md](PWA.md)).
 - **Home variant:** an inline `<head>` script (`lib/learner/boot-script.ts`) sets
   `<html data-learner="new|returning">` from stored data before first paint. Both home
   variants are server-rendered and CSS shows one, so there is no flash or layout shift.
@@ -318,7 +328,9 @@ and cosmetic catalogs, storage behavior and explicit integration points for futu
   storage, the learning path and keyboard navigation, EN/FI switching, dark mode, JS/Python
   execution and timeouts, a phone-sized layout, and (Milestone 3) level onboarding, skipping,
   placement checks in both languages, reassessment, manual overrides, migration of older data and
-  keyboard-only level choice.
+  keyboard-only level choice. The PWA specs (`e2e/pwa*.spec.ts`) cover the manifest and Chrome's
+  installability check, the install flow, offline pages and reconnection, a service worker update,
+  settings, backup export/import, the phone bottom bar and mobile practice.
 - `npm run test:rules` runs the security-rules tests and real-SDK sync tests against the Auth
   and Firestore emulators (demo project, Firebase CLI and Java required).
   `npm run build:e2e-cloud && npm run test:e2e:cloud` runs the account UI in a browser against

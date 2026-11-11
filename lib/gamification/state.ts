@@ -8,7 +8,7 @@ export interface GamificationState {
   version: 1;
   /** Awarded accomplishments by id; total XP is their sum (single source of truth). */
   awards: Record<string, XpAward>;
-  /** Local days with at least one passed check, sorted ascending. */
+  /** Local days with at least one passed check or correct practice answer, sorted ascending. */
   activeDays: string[];
   /** Best streak ever, kept even after old days are trimmed. */
   bestStreak: number;
@@ -39,7 +39,7 @@ export const emptyGamification: GamificationState = {
   migratedProgress: false,
 };
 
-const AWARD_KINDS: AwardKind[] = ["step", "exercise", "chapter"];
+const AWARD_KINDS: AwardKind[] = ["step", "exercise", "chapter", "practice"];
 
 /** Validate stored data. Invalid entries are dropped, never the whole state. */
 export function parseGamification(raw: unknown): GamificationState | null {

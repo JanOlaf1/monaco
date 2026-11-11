@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Koodaamo</title>
+  <rect width="512" height="512" fill="#3a57d6"/>
+  <g transform="translate(256 262) scale(2.55) translate(-80 -75.5)">
+    <circle cx="48" cy="36" r="9" fill="#8b5e3c"/>
+    <circle cx="112" cy="36" r="9" fill="#8b5e3c"/>
+    <circle cx="48" cy="36" r="4.5" fill="#6b4529"/>
+    <circle cx="112" cy="36" r="4.5" fill="#6b4529"/>
+    <ellipse cx="80" cy="100" rx="30" ry="14" fill="#8b5e3c"/>
+    <path d="M48 92 Q80 108 112 92 L112 101 Q80 117 48 101 Z" fill="#e8833a"/>
+    <path d="M95 104 L104 124 L93 121 Z" fill="#c4692a"/>
+    <ellipse cx="80" cy="62" rx="40" ry="36" fill="#8b5e3c"/>
+    <ellipse cx="80" cy="76" rx="27" ry="20" fill="#f3dfc1"/>
+    <circle cx="63" cy="80" r="11" fill="#f3dfc1"/>
+    <circle cx="97" cy="80" r="11" fill="#f3dfc1"/>
+    <circle cx="57" cy="72" r="4" fill="#e99a7a" opacity="0.45"/>
+    <circle cx="103" cy="72" r="4" fill="#e99a7a" opacity="0.45"/>
+    <path d="M41 44 Q80 28 119 44" stroke="#2f5d62" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <circle cx="68" cy="38" r="8" fill="#a7e8dc" stroke="#2f5d62" stroke-width="3"/>
+    <circle cx="92" cy="38" r="8" fill="#a7e8dc" stroke="#2f5d62" stroke-width="3"/>
+    <circle cx="65.5" cy="35.5" r="2" fill="#fff" opacity="0.8"/>
+    <circle cx="89.5" cy="35.5" r="2" fill="#fff" opacity="0.8"/>
+    <circle cx="67" cy="60" r="5" fill="#2b1d14"/>
+    <circle cx="93" cy="60" r="5" fill="#2b1d14"/>
+    <circle cx="68.6" cy="58.4" r="1.6" fill="#fff"/>
+    <circle cx="94.6" cy="58.4" r="1.6" fill="#fff"/>
+    <ellipse cx="80" cy="71" rx="7" ry="5" fill="#2b1d14"/>
+    <path d="M72 80 Q80 87 88 80" stroke="#2b1d14" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>

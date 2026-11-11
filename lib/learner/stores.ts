@@ -1,6 +1,7 @@
 import { emptyGamification, parseGamification, type GamificationState } from "@/lib/gamification/state";
 import { emptyCompetency, parseCompetency, type CompetencyState } from "@/lib/learning/competency";
 import { emptyDrafts, parseDrafts, type DraftsState } from "@/lib/progress/drafts";
+import { emptyPractice, parsePractice, type PracticeState } from "@/lib/practice/state";
 import { emptyProgress, parseProgress, type ProgressState } from "@/lib/progress/progress";
 import { emptySchedule, parseSchedule, type ScheduleState } from "@/lib/schedule/deadlines";
 import { createLocalStorageAdapter } from "@/lib/storage/local-storage";
@@ -19,7 +20,14 @@ export const STORAGE_KEYS = {
   schedule: `${PREFIX}:schedule`,
   gamification: `${PREFIX}:gamification`,
   competency: `${PREFIX}:competency`,
+  practice: `${PREFIX}:practice`,
 } as const;
+
+/** Mobile practice results (first and latest correct answer per activity). */
+export const practiceStore = createPersistentStore<PracticeState>({
+  adapter: createLocalStorageAdapter(STORAGE_KEYS.practice, parsePractice),
+  initial: emptyPractice,
+});
 
 /** Learning proficiency per language (separate from the XP level). */
 export const competencyStore = createPersistentStore<CompetencyState>({

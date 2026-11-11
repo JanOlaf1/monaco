@@ -8,7 +8,7 @@
  * a remote adapter (like lib/firebase/competency-remote.ts) and security
  * rules, then reuse the engine pattern in competency-sync.ts and flip `cloud`.
  */
-export type SyncDomainId = "competency" | "progress" | "rewards" | "adventure" | "drafts" | "schedule";
+export type SyncDomainId = "competency" | "progress" | "rewards" | "adventure" | "practice" | "drafts" | "schedule";
 
 export interface SyncDomain {
   id: SyncDomainId;
@@ -25,6 +25,8 @@ export const SYNC_DOMAINS: SyncDomain[] = [
   { id: "rewards", localKey: "koodaamo:v1:gamification", cloudPath: "users/{uid}/awards/{accomplishmentId}", cloud: false },
   // Code Archipelago (Milestone 4): crystals, quests and avatar items as an event ledger.
   { id: "adventure", localKey: "koodaamo:v1:adventure", cloudPath: "users/{uid}/adventureEvents/{eventId}", cloud: false },
+  // Mobile practice results (Milestone 7); their XP lives in the rewards domain.
+  { id: "practice", localKey: "koodaamo:v1:practice", cloudPath: "users/{uid}/practice/{activityId}", cloud: false },
   { id: "drafts", localKey: "koodaamo:v1:drafts", cloudPath: "users/{uid}/drafts/{exerciseId}", cloud: false },
   { id: "schedule", localKey: "koodaamo:v1:schedule", cloudPath: "users/{uid}/deadlines/{targetKey}", cloud: false },
 ];

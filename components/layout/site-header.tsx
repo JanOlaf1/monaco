@@ -2,11 +2,12 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AccountEntry } from "@/components/account/account-entry";
 import { HeaderStats } from "@/components/gamification/header-stats";
+import { OfflineIndicator } from "@/components/pwa/pwa-provider";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/config";
 import { LanguageSwitcher, LanguageSwitcherFallback } from "./language-switcher";
 import { LogoMark } from "./logo";
-import { NavLinks, NavLinksFallback } from "./nav-links";
+import { NavLinks, NavLinksFallback, SettingsLink } from "./nav-links";
 import { ThemeToggle } from "./theme-toggle";
 
 export function SiteHeader({ locale, dict }: { locale: Locale; dict: Dictionary }) {
@@ -22,11 +23,13 @@ export function SiteHeader({ locale, dict }: { locale: Locale; dict: Dictionary 
           <NavLinks />
         </Suspense>
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+          <OfflineIndicator />
           <HeaderStats />
           <Suspense fallback={<LanguageSwitcherFallback />}>
             <LanguageSwitcher />
           </Suspense>
           <ThemeToggle />
+          <SettingsLink />
           <AccountEntry />
         </div>
       </div>
