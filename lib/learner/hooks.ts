@@ -14,19 +14,16 @@ import type { SkillLevel } from "@/lib/content/types";
 import {
   applyPlacementResult,
   dismissPlacementPrompt,
-  effectiveLevel,
   migrateCompetency,
   setOnboarding,
   setRecommendation,
   setSelfReportedLevel,
   setUserOverride,
-  type LevelSource,
   type PlacementResult,
-  type RecommendationReason,
   type SelfReportedLevel,
   type TrackId,
 } from "@/lib/learning/competency";
-import { recommendStart } from "@/lib/learning/recommend";
+import { recommendForTrack } from "@/lib/learning/recommend";
 import { setDraftFile } from "@/lib/progress/drafts";
 import { recordStepPassed, recordVisit, setCurrentStep } from "@/lib/progress/progress";
 import { removeDeadline, setDeadline, targetKey, type DeadlineTarget } from "@/lib/schedule/deadlines";
@@ -114,13 +111,10 @@ export function migrateLearnerData(catalog: GamificationCatalog) {
 }
 
 /** Recompute the suggested starting point after the effective level changed. */
-const REASONS: Record<LevelSource, RecommendationReason> = { override: "override", placement: "placement", self: "self-report" };
-
 function refreshRecommendation(course: CatalogCourse | undefined, trackId: TrackId) {
   const now = nowIso();
   competencyStore.update((state) => {
-    const effective = effectiveLevel(state.tracks[trackId]);
-    const next = course && effective ? recommendStart(course, effective.level, REASONS[effective.source], now) : null;
+    const next = recommendForTrack(course, state.tracks[trackId], now);
     return setRecommendation(state, trackId, next, now);
   });
 }

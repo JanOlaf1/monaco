@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { AccountEntry } from "@/components/account/account-entry";
 import { HeaderStats } from "@/components/gamification/header-stats";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/config";
@@ -26,6 +27,7 @@ export function SiteHeader({ locale, dict }: { locale: Locale; dict: Dictionary 
             <LanguageSwitcher />
           </Suspense>
           <ThemeToggle />
+          <AccountEntry />
         </div>
       </div>
     </header>
