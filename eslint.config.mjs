@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Generated copies of Monaco/Pyodide (scripts/copy-runtime-assets.mjs).
     "public/vendor/**",
+    // Playwright traces contain captured third-party/minified runtime sources.
+    "test-results/**",
+    "playwright-report/**",
   ]),
 ]);
 

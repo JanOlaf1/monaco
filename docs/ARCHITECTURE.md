@@ -13,6 +13,7 @@ content/                Course, chapter and exercise definitions (data only)
 lib/content/            Content types, factories, registry, localisation, client catalog
 lib/execution/          Code runners (JS + Python), harness, shared types
 lib/gamification/       Pure XP, level, streak, achievement and daily-goal logic
+lib/adventure/          Independent crystal ledger, UTC quests, cosmetic catalog and local store
 lib/learning/           Proficiency levels, placement scoring, recommendations (pure)
 content/placement/      Placement checks per runnable language (data only)
 lib/i18n/               Locales, typed UI dictionaries, formatting helpers
@@ -28,6 +29,8 @@ Routes: `/[lang]` (home), `/[lang]/courses` (catalog), `/[lang]/courses/[courseI
 learning path), `/[lang]/courses/[courseId]/[exerciseId]` (workspace), `/[lang]/placement/[courseId]`
 (optional placement check), `/[lang]/progress` (XP level, streak, goal, skill levels, achievements)
 and `/[lang]/plan` (target dates). The header navigation is Learn / Courses / Progress.
+`/[lang]/collection` contains the optional Code Archipelago cosmetics, quests and new achievements,
+linked from the learner home and Progress page.
 
 ## Routing and internationalisation
 
@@ -246,6 +249,13 @@ All rules live in pure functions in `lib/gamification/` and are unit-tested.
   `aria-live` region). Animations are CSS-only and are reduced under `prefers-reduced-motion`.
 - Rewards are computed in the learner's browser and are therefore self-reported (see the
   security notes); they must not be used for anything that needs to be trustworthy.
+
+Milestone 4 adds an independent version-1 adventure document (`koodaamo:v1:adventure`),
+without changing the existing XP or proficiency schemas. Crystal balances and inventory derive
+from immutable events; existing completion evidence is backfilled once per accomplishment ID.
+Quests use UTC calendar periods, while existing streaks/daily goals retain local dates. Local
+spending uses Web Locks where supported. See [Milestone 4](MILESTONE_4.md) for the full reward
+and cosmetic catalogs, storage behavior and explicit integration points for future cloud sync.
 
 ## Workspace UI notes
 

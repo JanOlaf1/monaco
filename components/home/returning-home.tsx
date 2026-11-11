@@ -3,18 +3,22 @@
 import { ArrowRight, ChevronDown, Clock, Flag, FlaskConical, Footprints, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
+import { ArchipelagoMap } from "@/components/adventure/archipelago-map";
+import { CrystalBalance } from "@/components/adventure/crystal-balance";
+import { QuestCard } from "@/components/adventure/quest-card";
 import { DailyGoalPicker } from "@/components/gamification/daily-goal-picker";
 import { DailyGoalSummary, LevelProgress, StreakBadge } from "@/components/gamification/stats";
 import { chapterName } from "@/components/learn/learning-path";
 import { chapterIcons, tones } from "@/components/learn/theme";
 import { MiniPath } from "@/components/learn/mini-path";
 import { useLearnerSummary } from "@/components/learner/use-learner-summary";
-import { Mascot } from "@/components/mascot/mascot";
+import { ExplorerMascot as Mascot } from "@/components/adventure/explorer-mascot";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { LanguageMark, languageNames } from "@/components/ui/language-mark";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { cn } from "@/lib/cn";
+import { adventureDictionary } from "@/lib/i18n/adventure";
 import { useI18n } from "@/lib/i18n/client";
 import { format, plural } from "@/lib/i18n/format";
 import type { CatalogCourse } from "@/lib/content/catalog";
@@ -44,6 +48,7 @@ function HomeSkeleton() {
 /** The returning learner's home: continue first, then progress at a glance. */
 export function ReturningHome() {
   const { locale, dict } = useI18n();
+  const adventureText = adventureDictionary(locale);
   const { summary, hydrated, progress, gamification, competency } = useLearnerSummary();
   const [showStats, setShowStats] = useState(false);
   const [showSkills, setShowSkills] = useState(false);
@@ -77,7 +82,7 @@ export function ReturningHome() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <Mascot mood="welcome" size={64} animate />
         <div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{dict.home.welcomeBack}</h1>
@@ -89,6 +94,7 @@ export function ReturningHome() {
               : dict.gamification.streakNone}
           </p>
         </div>
+        <div className="sm:ml-auto"><CrystalBalance /></div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -235,53 +241,60 @@ export function ReturningHome() {
           <Card>
             <LevelProgress level={summary.level} />
           </Card>
-          <Card>
-            <StreakBadge streak={summary.streak} />
-          </Card>
-          <Card>
-            <DailyGoalSummary done={summary.daily.done} target={summary.daily.target} />
-            {gamification.dailyGoal === null || editGoal ? (
-              <div className="mt-4">
-                <DailyGoalPicker value={gamification.dailyGoal} />
-              </div>
-            ) : (
-              <Button variant="ghost" size="sm" className="-ml-2 mt-2" onClick={() => setEditGoal(true)}>
-                {dict.deadlines.change}
-              </Button>
-            )}
-          </Card>
-          {summary.milestone ? (
-            <Card>
-              <p className="text-xs font-semibold uppercase tracking-wide text-fg-subtle">{dict.home.nextMilestone}</p>
-              <p className="mt-2 flex items-start gap-2 text-sm">
-                <Trophy className="mt-0.5 size-4 shrink-0 text-xp" aria-hidden="true" />
-                <MilestoneText milestone={summary.milestone} />
-              </p>
-            </Card>
-          ) : null}
+          <QuestCard />
           <div>
             <Button variant="ghost" size="sm" onClick={() => setShowStats((value) => !value)} aria-expanded={showStats}>
               <ChevronDown className={cn("transition-transform", showStats && "rotate-180")} aria-hidden="true" />
               {showStats ? dict.home.hideStats : dict.home.showStats}
             </Button>
             {showStats ? (
-              <dl className="rise-in mt-2 grid grid-cols-2 gap-2">
-                {[
-                  [dict.home.stats.completed, summary.completedExercises],
-                  [dict.home.stats.labs, summary.completedLabs],
-                  [dict.home.stats.achievements, summary.achievementsEarned],
-                  [dict.home.stats.bestStreak, summary.streak.longest],
-                ].map(([label, value]) => (
-                  <div key={label} className="rounded-xl border border-line bg-surface p-3">
-                    <dt className="text-xs text-fg-subtle">{label}</dt>
-                    <dd className="mt-1 text-lg font-semibold tabular-nums">{value}</dd>
-                  </div>
-                ))}
-              </dl>
+              <div className="rise-in mt-3 space-y-4">
+                <Card>
+                  <StreakBadge streak={summary.streak} />
+                </Card>
+                <Card>
+                  <DailyGoalSummary done={summary.daily.done} target={summary.daily.target} />
+                  {gamification.dailyGoal === null || editGoal ? (
+                    <div className="mt-4">
+                      <DailyGoalPicker value={gamification.dailyGoal} />
+                    </div>
+                  ) : (
+                    <Button variant="ghost" size="sm" className="-ml-2 mt-2" onClick={() => setEditGoal(true)}>
+                      {dict.deadlines.change}
+                    </Button>
+                  )}
+                </Card>
+                {summary.milestone ? (
+                  <Card>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-fg-subtle">{dict.home.nextMilestone}</p>
+                    <p className="mt-2 flex items-start gap-2 text-sm">
+                      <Trophy className="mt-0.5 size-4 shrink-0 text-xp" aria-hidden="true" />
+                      <MilestoneText milestone={summary.milestone} />
+                    </p>
+                  </Card>
+                ) : null}
+                <dl className="grid grid-cols-2 gap-2">
+                  {[
+                    [dict.home.stats.completed, summary.completedExercises],
+                    [dict.home.stats.labs, summary.completedLabs],
+                    [dict.home.stats.achievements, summary.achievementsEarned],
+                    [dict.home.stats.bestStreak, summary.streak.longest],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-xl border border-line bg-surface p-3">
+                      <dt className="text-xs text-fg-subtle">{label}</dt>
+                      <dd className="mt-1 text-lg font-semibold tabular-nums">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
             ) : null}
           </div>
         </aside>
       </div>
+      <details className="rounded-2xl border border-line bg-surface p-5">
+        <summary className="cursor-pointer text-sm font-semibold">{adventureText.world}</summary>
+        <div className="mt-4"><ArchipelagoMap /></div>
+      </details>
     </div>
   );
 }

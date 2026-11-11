@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { recordAdventurePass } from "@/lib/adventure/hooks";
 import { publishRewards } from "@/lib/gamification/celebrations";
 import {
   applyCheckFailure,
@@ -91,6 +92,10 @@ export function recordCheckResult(input: {
     rewards = result.rewards;
     return result.state;
   });
+  void recordAdventurePass({
+    progress, catalog, exerciseId, stepId, now,
+    xpAwards: gamificationStore.getSnapshot().value.awards,
+  }).catch((error: unknown) => console.warn("[adventure] Could not record local rewards:", error));
   if (rewards) publishRewards(rewards);
   return rewards;
 }
