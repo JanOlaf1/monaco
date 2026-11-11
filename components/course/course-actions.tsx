@@ -6,7 +6,10 @@ import { ButtonLink } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useI18n } from "@/lib/i18n/client";
 import { format } from "@/lib/i18n/format";
-import { useProgress } from "@/lib/learner/hooks";
+import type { TrackId } from "@/lib/learning/competency";
+import { nextTask } from "@/lib/learning/recommend";
+import { useCatalog } from "@/lib/learner/catalog-context";
+import { useCompetency, useProgress } from "@/lib/learner/hooks";
 import { courseProgress, nextExerciseInCourse } from "@/lib/progress/progress";
 
 export function CourseActions({
@@ -20,8 +23,13 @@ export function CourseActions({
 }) {
   const { locale, dict } = useI18n();
   const { value, hydrated } = useProgress();
+  const { value: competency } = useCompetency();
+  const { courses } = useCatalog();
+  const course = courses.find((candidate) => candidate.id === courseId);
   const progress = courseProgress(value, exerciseIds);
-  const nextId = nextExerciseInCourse(value, exerciseIds);
+  // The suggested starting point for the learner level, else the first unfinished exercise.
+  const task = course ? nextTask(course, value, competency.tracks[course.language as TrackId]) : undefined;
+  const nextId = task?.exercise.id ?? nextExerciseInCourse(value, exerciseIds);
   const complete = progress.total > 0 && progress.completed === progress.total;
   const label = !hydrated || !progress.started ? dict.course.start : complete ? dict.course.review : dict.course.continue;
 

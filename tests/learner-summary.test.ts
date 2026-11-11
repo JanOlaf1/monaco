@@ -68,7 +68,8 @@ describe("learner summary", () => {
     state.progress = recordVisit(state.progress, "python", python.exerciseIds.at(-1)!, "2026-11-10T10:00:00.000Z");
     const summary = summarize(state.progress, state.gamification);
     expect(summary.continueAt?.courseComplete).toBe(true);
-    expect(summary.completedChapters).toHaveLength(python.chapters.length);
+    // Checkpoints are reviews between bands, not chapters: they earn no chapter bonus and are not listed here.
+    expect(summary.completedChapters).toHaveLength(python.chapters.filter((chapter) => chapter.kind === "chapter").length);
     expect(summary.courses.find((entry) => entry.course.id === "python")?.complete).toBe(true);
     expect(Object.keys(state.gamification.achievements)).toEqual(
       expect.arrayContaining(["first-steps", "curious-coder", "persistent-learner", "lab-champion", "python-explorer"]),

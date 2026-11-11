@@ -4,7 +4,7 @@ import { CelebrationToasts } from "@/components/gamification/celebration-toasts"
 import { InlineScript } from "@/components/layout/inline-script";
 import { SiteHeader } from "@/components/layout/site-header";
 import { LearnerSync } from "@/components/learner/learner-sync";
-import { getCatalog } from "@/lib/content/localize";
+import { getCatalog, getSkillCatalog } from "@/lib/content/localize";
 import { I18nProvider } from "@/lib/i18n/client";
 import { locales } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/server";
@@ -56,7 +56,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
       </head>
       <body className="min-h-full">
         <I18nProvider locale={locale} dict={dict}>
-          <CatalogProvider courses={getCatalog(locale)}>
+          <CatalogProvider courses={getCatalog(locale)} skills={getSkillCatalog(locale)}>
             <a
               href="#main"
               className="sr-only z-50 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-fg focus:not-sr-only focus:fixed focus:left-3 focus:top-3"

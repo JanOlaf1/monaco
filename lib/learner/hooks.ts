@@ -9,11 +9,30 @@ import {
   type GamificationCatalog,
   type Rewards,
 } from "@/lib/gamification/engine";
+import type { CatalogCourse } from "@/lib/content/catalog";
+import type { SkillLevel } from "@/lib/content/types";
+import {
+  applyPlacementResult,
+  dismissPlacementPrompt,
+  effectiveLevel,
+  migrateCompetency,
+  setOnboarding,
+  setRecommendation,
+  setSelfReportedLevel,
+  setUserOverride,
+  type LevelSource,
+  type PlacementResult,
+  type RecommendationReason,
+  type SelfReportedLevel,
+  type TrackId,
+} from "@/lib/learning/competency";
+import { recommendStart } from "@/lib/learning/recommend";
 import { setDraftFile } from "@/lib/progress/drafts";
 import { recordStepPassed, recordVisit, setCurrentStep } from "@/lib/progress/progress";
 import { removeDeadline, setDeadline, targetKey, type DeadlineTarget } from "@/lib/schedule/deadlines";
 import type { PersistentStore, StoreSnapshot } from "@/lib/storage/persistent-store";
-import { draftsStore, gamificationStore, progressStore, scheduleStore } from "./stores";
+import { competencyStore, draftsStore, gamificationStore, progressStore, scheduleStore } from "./stores";
+import { hasLearnerActivity } from "./summary";
 
 export function useStore<T>(store: PersistentStore<T>): StoreSnapshot<T> {
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
@@ -22,6 +41,7 @@ export function useStore<T>(store: PersistentStore<T>): StoreSnapshot<T> {
 export const useProgress = () => useStore(progressStore);
 export const useSchedule = () => useStore(scheduleStore);
 export const useGamification = () => useStore(gamificationStore);
+export const useCompetency = () => useStore(competencyStore);
 
 /** Only re-renders when hydration state changes (not on every keystroke). */
 export function useDraftsHydrated(): boolean {
@@ -75,12 +95,96 @@ export function recordCheckResult(input: {
   return rewards;
 }
 
-/** One-time XP backfill for progress saved before gamification existed. */
+/**
+ * One-time migrations for data saved by earlier versions: the XP backfill for
+ * progress saved before gamification existed, and marking learners who were
+ * already active before proficiency levels existed (so no onboarding is forced
+ * on them). Existing stores are only read here, never rewritten.
+ */
 export function migrateLearnerData(catalog: GamificationCatalog) {
   if (!progressStore.getSnapshot().hydrated || !gamificationStore.getSnapshot().hydrated) return;
   const progress = progressStore.getSnapshot().value;
-  gamificationStore.update((state) => backfillFromProgress(state, progress, catalog, new Date()));
+  if (!gamificationStore.getSnapshot().value.migratedProgress) {
+    gamificationStore.update((state) => backfillFromProgress(state, progress, catalog, new Date()));
+  }
+  if (competencyStore.getSnapshot().hydrated && !competencyStore.getSnapshot().value.migrated) {
+    const active = hasLearnerActivity(progress, gamificationStore.getSnapshot().value);
+    competencyStore.update((state) => migrateCompetency(state, active));
+  }
 }
+
+/** Recompute the suggested starting point after the effective level changed. */
+const REASONS: Record<LevelSource, RecommendationReason> = { override: "override", placement: "placement", self: "self-report" };
+
+function refreshRecommendation(course: CatalogCourse | undefined, trackId: TrackId) {
+  const now = nowIso();
+  competencyStore.update((state) => {
+    const effective = effectiveLevel(state.tracks[trackId]);
+    const next = course && effective ? recommendStart(course, effective.level, REASONS[effective.source], now) : null;
+    return setRecommendation(state, trackId, next, now);
+  });
+}
+
+export const competencyActions = {
+  /**
+   * Onboarding: the level chosen for the first language plus optional levels
+   * for the others. Returns the exercise to start with, or null for "not sure"
+   * (the caller then offers the placement check).
+   */
+  completeOnboarding(input: {
+    course: CatalogCourse;
+    level: SelfReportedLevel | null;
+    otherLevels: Partial<Record<TrackId, SelfReportedLevel>>;
+    courses: CatalogCourse[];
+  }): string | null {
+    const now = nowIso();
+    const trackId = input.course.language as TrackId;
+    competencyStore.update((state) => {
+      let next = setOnboarding(state, input.level ? "completed" : "skipped");
+      if (input.level) next = setSelfReportedLevel(next, trackId, input.level, now);
+      for (const [other, level] of Object.entries(input.otherLevels)) {
+        if (level) next = setSelfReportedLevel(next, other as TrackId, level, now);
+      }
+      return next;
+    });
+    for (const [other, level] of Object.entries(input.otherLevels)) {
+      const otherCourse = input.courses.find((course) => course.language === other && course.exerciseIds.length > 0);
+      if (level && level !== "not-sure") refreshRecommendation(otherCourse, other as TrackId);
+    }
+    gamificationActions.setPreferredCourse(input.course.id);
+    if (input.level === "not-sure") return null;
+    refreshRecommendation(input.course, trackId);
+    const recommended = competencyStore.getSnapshot().value.tracks[trackId]?.recommendedNext?.exerciseId;
+    return recommended ?? input.course.exerciseIds[0] ?? null;
+  },
+  /** "Skip for now": no level is stored; the learner starts from the beginning. */
+  skipOnboarding(course: CatalogCourse) {
+    competencyStore.update((state) => setOnboarding(state, "skipped"));
+    gamificationActions.setPreferredCourse(course.id);
+  },
+  savePlacement(input: {
+    course: CatalogCourse;
+    result: PlacementResult;
+    skills: Record<string, { correct: number; total: number }>;
+  }) {
+    const now = nowIso();
+    const trackId = input.course.language as TrackId;
+    competencyStore.update((state) => {
+      const next = applyPlacementResult(state, trackId, input.result, input.skills, now);
+      return state.onboarding === "pending" ? setOnboarding(next, "completed") : next;
+    });
+    refreshRecommendation(input.course, trackId);
+    gamificationActions.setPreferredCourse(input.course.id);
+  },
+  /** The learner's own level, which always wins; null clears it so suggestions apply again. */
+  setOverride(course: CatalogCourse | undefined, trackId: TrackId, level: SkillLevel | null) {
+    competencyStore.update((state) => setUserOverride(state, trackId, level, nowIso()));
+    refreshRecommendation(course, trackId);
+  },
+  dismissPlacementPrompt(trackId: TrackId) {
+    competencyStore.update((state) => dismissPlacementPrompt(state, trackId));
+  },
+};
 
 export const gamificationActions = {
   setDailyGoal(goal: number) {

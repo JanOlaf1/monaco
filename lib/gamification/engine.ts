@@ -5,7 +5,7 @@ import { newlyUnlocked, type AchievementContext, type AchievementId } from "./ac
 import { levelInfo } from "./levels";
 import { MAX_FAILED_STEPS, type GamificationState } from "./state";
 import { addActiveDay, streakInfo, type StreakInfo } from "./streaks";
-import { XP_REWARDS, accomplishmentId, exercisesCompletedOn, totalXp, type XpAward } from "./xp";
+import { XP_REWARDS, accomplishmentId, exerciseXp, exercisesCompletedOn, totalXp, type XpAward } from "./xp";
 
 /** The minimal content structure the engine needs (ids only, no texts). */
 export interface GamificationCatalog {
@@ -103,7 +103,7 @@ export function applyStepPass(input: {
     award(before, awards, {
       id: accomplishmentId.exercise(exerciseId),
       kind: "exercise",
-      xp: exercise.type === "lab" ? XP_REWARDS.lab : XP_REWARDS.challenge,
+      xp: exerciseXp(exercise.type),
       at,
       day,
     });
@@ -206,7 +206,7 @@ export function backfillFromProgress(
       award(state, awards, {
         id: accomplishmentId.exercise(exerciseId),
         kind: "exercise",
-        xp: exercise.type === "lab" ? XP_REWARDS.lab : XP_REWARDS.challenge,
+        xp: exerciseXp(exercise.type),
         at: entry.completedAt,
         day,
       });

@@ -1,6 +1,5 @@
 import type { LocalizedText } from "@/lib/i18n/config";
 import type {
-  Difficulty,
   ExerciseDefinition,
   ExpectedOutput,
   TestDefinition,
@@ -13,6 +12,7 @@ import type {
  *   check("id", label, failure, code)           -> TestDefinition
  *   pyChallenge({...}) / jsChallenge({...})     -> one-step micro-challenge
  *   pyLab({...}) / jsLab({...})                 -> lab (milestone) exercise
+ *   pyCheckpoint / jsCheckpoint                 -> checkpoint between two bands
  *
  * Everything they produce is plain data validated by tests/content.test.ts.
  */
@@ -36,7 +36,6 @@ const FILES: Record<RunnableLanguage, string> = { python: "main.py", javascript:
 export interface ExerciseInput {
   id: string;
   chapterId: string;
-  difficulty?: Difficulty;
   minutes: number;
   title: LocalizedText;
   /** One sentence shown under the title. */
@@ -68,7 +67,6 @@ function build(
     chapterId: input.chapterId,
     language,
     type,
-    difficulty: input.difficulty ?? "beginner",
     estimatedMinutes: input.minutes,
     title: input.title,
     summary: input.summary,
@@ -78,7 +76,7 @@ function build(
     starterFiles: [{ name: FILES[language], language, entry: true, content: withNewline(input.starter) }],
     steps: [
       {
-        id: type === "lab" ? "lab" : "task",
+        id: type === "challenge" ? "task" : type,
         title: input.title,
         instructions: input.instructions,
         hints: input.hints,
@@ -93,3 +91,7 @@ export const pyChallenge = (input: ExerciseInput) => build("python", "challenge"
 export const jsChallenge = (input: ExerciseInput) => build("javascript", "challenge", input);
 export const pyLab = (input: ExerciseInput & { requirements: LocalizedText[] }) => build("python", "lab", input);
 export const jsLab = (input: ExerciseInput & { requirements: LocalizedText[] }) => build("javascript", "lab", input);
+export const pyCheckpoint = (input: ExerciseInput & { requirements: LocalizedText[] }) =>
+  build("python", "checkpoint", input);
+export const jsCheckpoint = (input: ExerciseInput & { requirements: LocalizedText[] }) =>
+  build("javascript", "checkpoint", input);

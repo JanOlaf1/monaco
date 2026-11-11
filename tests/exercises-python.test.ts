@@ -3,9 +3,10 @@ import { getAllExercises, getExercise } from "@/lib/content/registry";
 import { chunksToEntries } from "@/lib/execution/output";
 import { pythonSolutions as baseSolutions } from "./fixtures/solutions";
 import { pythonExpansionSolutions } from "./fixtures/solutions-expansion";
+import { pythonM3Solutions } from "./fixtures/solutions-m3";
 import { loadHarness, type PythonHarness } from "./helpers/pyodide";
 
-const pythonSolutions = [...baseSolutions, ...pythonExpansionSolutions];
+const pythonSolutions = [...baseSolutions, ...pythonExpansionSolutions, ...pythonM3Solutions];
 
 let harness: PythonHarness;
 

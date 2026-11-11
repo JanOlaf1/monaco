@@ -12,7 +12,6 @@ export const greetingFunctions: ExerciseDefinition = {
   chapterId: "js-functions",
   language: "javascript",
   type: "challenge",
-  difficulty: "beginner",
   estimatedMinutes: 20,
   title: { en: "Variables and functions", fi: "Muuttujat ja funktiot" },
   summary: {

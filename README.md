@@ -4,8 +4,13 @@ An interactive, bilingual (English / Finnish) coding course platform. Learners f
 visual, chapter-based learning path of short challenges and larger labs, write real code in
 Monaco Editor, run it, and get per-requirement feedback from automated tests.
 
-- **Python** (22 exercises) and **JavaScript** (21 exercises) are fully interactive, each in
-  10 chapters (code runs in Web Workers; Python uses Pyodide).
+- **Python** (31 exercises) and **JavaScript** (30 exercises) are fully interactive, each in
+  13 chapters across beginner, intermediate and advanced bands, with a checkpoint between bands
+  (code runs in Web Workers; Python uses Pyodide). See
+  [docs/CONTENT_COVERAGE.md](docs/CONTENT_COVERAGE.md).
+- Learners can say how much they already know (per language) or take an optional placement check,
+  and get a suggested starting chapter. This proficiency level is separate from the XP level and
+  never locks content.
 - **TypeScript** and **React** courses are outlined and clearly marked as coming soon.
 - Motivation without pressure: XP, levels, a learning streak, 8 achievements, an optional
   daily goal and an original otter mascot. Nothing is ever locked, and there are no lives,

@@ -1,9 +1,10 @@
 import { localize, type Locale } from "@/lib/i18n/config";
-import type { CatalogChapter, CatalogCourse, CatalogExercise } from "./catalog";
+import { getPlacement } from "@/lib/learning/placement-content";
+import { skills } from "@/content/skills";
+import type { CatalogChapter, CatalogCourse, CatalogExercise, CatalogSkill } from "./catalog";
 import { getCourseExerciseIds, getCourses, getExercise } from "./registry";
 import type {
   CourseDefinition,
-  Difficulty,
   ExerciseDefinition,
   ExerciseType,
   ProgrammingLanguage,
@@ -39,7 +40,6 @@ export interface LocalizedExercise {
   chapterId: string;
   language: ProgrammingLanguage;
   type: ExerciseType;
-  difficulty: Difficulty;
   estimatedMinutes: number;
   title: string;
   summary: string;
@@ -58,7 +58,6 @@ export function localizeExercise(exercise: ExerciseDefinition, locale: Locale): 
     chapterId: exercise.chapterId,
     language: exercise.language,
     type: exercise.type,
-    difficulty: exercise.difficulty,
     estimatedMinutes: exercise.estimatedMinutes,
     title: localize(exercise.title, locale),
     summary: localize(exercise.summary, locale),
@@ -96,18 +95,28 @@ export function summarizeExercise(exercise: ExerciseDefinition, locale: Locale):
     chapterId: exercise.chapterId,
     title: localize(exercise.title, locale),
     type: exercise.type,
-    difficulty: exercise.difficulty,
     estimatedMinutes: exercise.estimatedMinutes,
     stepIds: exercise.steps.map((step) => step.id),
     testCount: exercise.steps.reduce((sum, step) => sum + step.tests.length, 0),
   };
 }
 
+function placementSummary(courseId: string): CatalogCourse["placement"] {
+  const placement = getPlacement(courseId);
+  return placement ? { minutes: placement.minutes } : null;
+}
+
 function summarizeCourse(course: CourseDefinition, locale: Locale): CatalogCourse {
-  const chapters: CatalogChapter[] = course.chapters.map((chapter, index) => ({
+  let chapterNumber = 0;
+  const chapters: CatalogChapter[] = course.chapters.map((chapter) => ({
     id: chapter.id,
     courseId: course.id,
-    number: index + 1,
+    kind: chapter.kind ?? "chapter",
+    // Checkpoints sit between chapters and are not numbered.
+    number: chapter.kind === "checkpoint" ? null : ++chapterNumber,
+    level: chapter.level,
+    skills: chapter.skills,
+    buildsOn: chapter.buildsOn ?? [],
     title: localize(chapter.title, locale),
     summary: localize(chapter.summary, locale),
     status: chapter.status,
@@ -127,8 +136,14 @@ function summarizeCourse(course: CourseDefinition, locale: Locale): CatalogCours
     title: localize(course.title, locale),
     summary: localize(course.summary, locale),
     chapters,
+    placement: placementSummary(course.id),
     exerciseIds: getCourseExerciseIds(course.id),
   };
+}
+
+/** Skill names in one locale (for skill overviews and placement results). */
+export function getSkillCatalog(locale: Locale): CatalogSkill[] {
+  return skills.map((skill) => ({ id: skill.id, track: skill.track, title: localize(skill.title, locale) }));
 }
 
 /** The whole course catalog in one locale (small: ids, titles and metadata only). */

@@ -7,6 +7,7 @@ import {
   ChevronDown,
   CircleCheck,
   Clock,
+  Flag,
   FlaskConical,
   Footprints,
   ListChecks,
@@ -80,7 +81,8 @@ export function InstructionsPanel({
   const { locale, dict } = useI18n();
   const w = dict.workspace;
   const step = exercise.steps[stepIndex];
-  const isLab = exercise.type === "lab";
+  // Labs and checkpoints share the bigger-task layout (requirements, example output).
+  const isLab = exercise.type !== "challenge";
   const multiStep = exercise.steps.length > 1;
   const isLastStep = stepIndex === exercise.steps.length - 1;
   const tone = tones[nav.chapterTheme.tone];
@@ -95,7 +97,9 @@ export function InstructionsPanel({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium">
             <span className={cn("inline-flex items-center gap-1", tone.text)}>
               <ChapterIcon className="size-3.5" aria-hidden="true" />
-              {format(w.chapterLabel, { number: nav.chapterNumber, title: nav.chapterTitle })}
+              {nav.chapterNumber === null
+                ? format(w.checkpointLabel, { title: nav.chapterTitle })
+                : format(w.chapterLabel, { number: nav.chapterNumber, title: nav.chapterTitle })}
             </span>
             <span className="text-fg-subtle">
               · {format(w.positionInChapter, { position: nav.positionInChapter, total: nav.chapterSize })}
@@ -103,7 +107,18 @@ export function InstructionsPanel({
           </div>
           <h1 className="mt-1.5 text-xl font-semibold tracking-tight">{exercise.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <Badge tone="accent" icon={isLab ? <FlaskConical aria-hidden="true" /> : <Footprints aria-hidden="true" />}>
+            <Badge
+              tone="accent"
+              icon={
+                exercise.type === "checkpoint" ? (
+                  <Flag aria-hidden="true" />
+                ) : isLab ? (
+                  <FlaskConical aria-hidden="true" />
+                ) : (
+                  <Footprints aria-hidden="true" />
+                )
+              }
+            >
               {dict.course.type[exercise.type]}
             </Badge>
             <Badge icon={<Clock aria-hidden="true" />}>{format(dict.common.minutes, { count: exercise.estimatedMinutes })}</Badge>
@@ -210,7 +225,7 @@ export function InstructionsPanel({
               rewards={rewards}
               failingCount={failing.length}
               isLastStep={isLastStep}
-              isLab={isLab}
+              exerciseType={exercise.type}
               nav={nav}
               onNextStep={() => onSelectStep(stepIndex + 1)}
             />
@@ -266,7 +281,7 @@ function Feedback({
   rewards,
   failingCount,
   isLastStep,
-  isLab,
+  exerciseType,
   nav,
   onNextStep,
 }: {
@@ -274,7 +289,7 @@ function Feedback({
   rewards?: Rewards | null;
   failingCount: number;
   isLastStep: boolean;
-  isLab: boolean;
+  exerciseType: LocalizedExercise["type"];
   nav: WorkspaceNav;
   onNextStep: () => void;
 }) {
@@ -286,9 +301,11 @@ function Feedback({
     const title = rewards?.chapterCompleted
       ? f.chapterComplete
       : isLastStep
-        ? isLab
+        ? exerciseType === "lab"
           ? f.labComplete
-          : f.exerciseComplete
+          : exerciseType === "checkpoint"
+            ? f.checkpointComplete
+            : f.exerciseComplete
         : f.stepComplete;
     const continueHref = nav.next ? `/${locale}/courses/${nav.courseId}/${nav.next.id}` : `/${locale}/courses/${nav.courseId}`;
     return (
@@ -314,9 +331,7 @@ function Feedback({
                           ? g.reward.step
                           : award.kind === "chapter"
                             ? g.reward.chapter
-                            : isLab
-                              ? g.reward.lab
-                              : g.reward.challenge}
+                            : g.reward[exerciseType]}
                       </span>
                     </span>
                   </li>

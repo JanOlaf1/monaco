@@ -1,7 +1,9 @@
 import { parse } from "acorn";
 import { beforeAll, describe, expect, it } from "vitest";
+import { skills } from "@/content/skills";
 import { getAllExercises, getCourseExerciseIds, getCourses, getExercise, getExerciseRouteParams } from "@/lib/content/registry";
 import { localizeExercise } from "@/lib/content/localize";
+import { SKILL_LEVELS } from "@/lib/content/types";
 import { runnerSupport } from "@/lib/execution/registry";
 import { locales } from "@/lib/i18n/config";
 import { loadHarness, type PythonHarness } from "./helpers/pyodide";
@@ -50,6 +52,38 @@ describe("course content", () => {
       expect(getCourseExerciseIds(courseId).length, courseId).toBeGreaterThanOrEqual(20);
       const course = getCourses().find((candidate) => candidate.id === courseId)!;
       expect(course.chapters.filter((chapter) => chapter.status === "available").length).toBeGreaterThanOrEqual(10);
+    }
+  });
+
+  it("gives every chapter a level and known skills, with bands in order", () => {
+    const known = new Map(skills.map((skill) => [skill.id, skill.track]));
+    expect(new Set(skills.map((skill) => skill.id)).size, "unique skill ids").toBe(skills.length);
+    for (const course of getCourses()) {
+      let previousRank = 0;
+      for (const chapter of course.chapters) {
+        const rank = SKILL_LEVELS.indexOf(chapter.level);
+        expect(rank, `${chapter.id} level`).toBeGreaterThanOrEqual(0);
+        // Bands follow each other: a chapter is never easier than the one before it.
+        expect(rank, `${chapter.id} band order`).toBeGreaterThanOrEqual(previousRank);
+        previousRank = rank;
+        expect(chapter.skills.length, `${chapter.id} skills`).toBeGreaterThan(0);
+        for (const skill of [...chapter.skills, ...(chapter.buildsOn ?? [])]) {
+          expect(known.get(skill), `${chapter.id}: ${skill}`).toBe(course.language);
+        }
+      }
+    }
+  });
+
+  it("keeps checkpoints in their own chapters", () => {
+    for (const course of getCourses()) {
+      for (const chapter of course.chapters) {
+        const types = chapter.exerciseIds.map((id) => getExercise(id)?.type);
+        if (chapter.kind === "checkpoint") {
+          expect(types, chapter.id).toEqual(["checkpoint"]);
+        } else {
+          expect(types, chapter.id).not.toContain("checkpoint");
+        }
+      }
     }
   });
 
@@ -106,7 +140,7 @@ describe("course content", () => {
   it("has valid exercise structure", () => {
     for (const exercise of getAllExercises()) {
       expect(exercise.steps.length, exercise.id).toBeGreaterThan(0);
-      if (exercise.type === "lab") {
+      if (exercise.type === "lab" || exercise.type === "checkpoint") {
         expect(exercise.steps, exercise.id).toHaveLength(1);
         expect(exercise.requirements?.length, exercise.id).toBeGreaterThan(0);
       }

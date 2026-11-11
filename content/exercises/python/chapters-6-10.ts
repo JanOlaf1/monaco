@@ -691,7 +691,6 @@ export const pySlicing = pyChallenge({
 export const pyWordCounterLab = pyLab({
   id: "py-word-counter-lab",
   chapterId: "py-projects",
-  difficulty: "intermediate",
   minutes: 20,
   title: l("Lab: Word counter", "Harjoitustyö: Sanalaskuri"),
   summary: l(
@@ -814,7 +813,6 @@ export const pyWordCounterLab = pyLab({
 export const pyScoreReportLab = pyLab({
   id: "py-score-report-lab",
   chapterId: "py-projects",
-  difficulty: "intermediate",
   minutes: 25,
   title: l("Lab: Score report", "Harjoitustyö: Tulosraportti"),
   summary: l(

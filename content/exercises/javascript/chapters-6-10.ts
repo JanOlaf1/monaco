@@ -597,7 +597,6 @@ export const jsInitials = jsChallenge({
 export const jsShoppingCartLab = jsLab({
   id: "js-shopping-cart-lab",
   chapterId: "js-projects",
-  difficulty: "intermediate",
   minutes: 25,
   title: l("Lab: Shopping cart", "Harjoitustyö: Ostoskori"),
   summary: l("Combine arrays, objects and functions in a checkout.", "Yhdistä taulukot, oliot ja funktiot kassatoiminnoksi."),
@@ -746,7 +745,6 @@ export const jsShoppingCartLab = jsLab({
 export const jsTaskListLab = jsLab({
   id: "js-task-list-lab",
   chapterId: "js-projects",
-  difficulty: "intermediate",
   minutes: 25,
   title: l("Lab: Task list", "Harjoitustyö: Tehtävälista"),
   summary: l("Manage a list of tasks without changing the original data.", "Hallitse tehtävälistaa muuttamatta alkuperäisiä tietoja."),

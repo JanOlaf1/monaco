@@ -1,3 +1,5 @@
+import type { ExerciseType } from "@/lib/content/types";
+
 /**
  * XP is awarded for accomplishments, each identified by a stable id. An id is
  * awarded at most once, so re-checking a completed exercise never adds XP.
@@ -9,11 +11,18 @@ export const XP_REWARDS = {
   challenge: 25,
   /** Completing a lab. */
   lab: 50,
+  /** Passing a checkpoint (a lab-sized review of a whole band). */
+  checkpoint: 50,
   /** One-time bonus when every exercise in a chapter is complete. */
   chapter: 50,
 } as const;
 
 export type AwardKind = "step" | "exercise" | "chapter";
+
+/** XP for completing an exercise of a given type. */
+export function exerciseXp(type: ExerciseType): number {
+  return XP_REWARDS[type];
+}
 
 export interface XpAward {
   id: string;

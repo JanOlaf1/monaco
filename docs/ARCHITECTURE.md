@@ -13,6 +13,8 @@ content/                Course, chapter and exercise definitions (data only)
 lib/content/            Content types, factories, registry, localisation, client catalog
 lib/execution/          Code runners (JS + Python), harness, shared types
 lib/gamification/       Pure XP, level, streak, achievement and daily-goal logic
+lib/learning/           Proficiency levels, placement scoring, recommendations (pure)
+content/placement/      Placement checks per runnable language (data only)
 lib/i18n/               Locales, typed UI dictionaries, formatting helpers
 lib/progress/, lib/schedule/   Pure learner-state logic (progress, drafts, deadlines)
 lib/storage/, lib/learner/     Persistence adapter, stores, hooks, learner summary
@@ -23,9 +25,9 @@ e2e/                    Playwright browser tests against the production build
 ```
 
 Routes: `/[lang]` (home), `/[lang]/courses` (catalog), `/[lang]/courses/[courseId]` (visual
-learning path), `/[lang]/courses/[courseId]/[exerciseId]` (workspace), `/[lang]/progress`
-(level, streak, goal, achievements) and `/[lang]/plan` (target dates). The header navigation
-is Learn / Courses / Progress.
+learning path), `/[lang]/courses/[courseId]/[exerciseId]` (workspace), `/[lang]/placement/[courseId]`
+(optional placement check), `/[lang]/progress` (XP level, streak, goal, skill levels, achievements)
+and `/[lang]/plan` (target dates). The header navigation is Learn / Courses / Progress.
 
 ## Routing and internationalisation
 
@@ -49,11 +51,21 @@ is Learn / Courses / Progress.
 (icon + colour tone) used by the learning path. An exercise is plain data: metadata, a
 markdown concept explanation (what / why / how), objectives, starter files, and one or more
 **steps**. Each step has instructions, optional progressive hints, test definitions and
-optional starter files (used by "Reset"). Exercises are `challenge`s (short, usually one step)
-or `lab`s (a bigger task with a requirement list, shown as milestones on the path).
+optional starter files (used by "Reset"). Exercises are `challenge`s (short, usually one step),
+`lab`s (a bigger task with a requirement list, shown as milestones on the path) or
+`checkpoint`s (a lab-sized review of a whole band, see below).
 
-`lib/content/factories.ts` (`pyChallenge`, `jsChallenge`, `pyLab`, `jsLab`, `l(en, fi)`,
-`check(...)`) keeps single-step exercises compact; multi-step exercises are written out in full.
+Every chapter has a **level** (`beginner`, `intermediate`, `advanced`; `professional` is reserved),
+the **skills** it practises (stable ids from `content/skills.ts`) and optionally `buildsOn` skills
+that are shown as "helpful to know first" — a suggestion, never a lock. Levels never decrease in
+course order, so a course reads as bands. A **checkpoint chapter** (`kind: "checkpoint"`) sits
+between two bands and holds exactly one checkpoint exercise; it is not numbered, earns exercise XP
+(50) but no chapter bonus, and passing it never marks the chapters it reviews as completed.
+`docs/CONTENT_COVERAGE.md` shows counts per track and level and is checked by a test.
+
+`lib/content/factories.ts` (`pyChallenge`, `jsChallenge`, `pyLab`, `jsLab`, `pyCheckpoint`,
+`jsCheckpoint`, `l(en, fi)`, `check(...)`) keeps single-step exercises compact; multi-step
+exercises are written out in full.
 
 One generic workspace renders every exercise, so adding content never needs a new component:
 
@@ -162,17 +174,57 @@ Learner code never runs on the server or in the main page context. Worker isolat
   chapter bonuses and achievements for progress that was already saved, then sets
   `migratedProgress` so it never runs twice. The recorded completion dates of saved exercises
   become active days; no other days are invented.
+- The competency store (`koodaamo:v1:competency`, version 1) holds the learning proficiency per
+  language — see the next section. It is separate from every other store and never rewrites them.
 - **Home variant:** an inline `<head>` script (`lib/learner/boot-script.ts`) sets
   `<html data-learner="new|returning">` from stored data before first paint. Both home
   variants are server-rendered and CSS shows one, so there is no flash or layout shift.
-  `LearnerSync` keeps the attribute correct after storage changes.
+  `LearnerSync` keeps the attribute correct after storage changes. The script is rendered by
+  `InlineScript`, which turns client-side copies into inert data blocks (no React dev warning on
+  soft navigations between `/en` and `/fi`).
+
+## Proficiency levels and placement
+
+Learning proficiency answers "where should this learner start?". It is **separate from the XP
+level**, which only measures effort on the platform; the two never feed each other.
+
+- **Competency model** (`lib/learning/competency.ts`): per track (`python`, `javascript`,
+  `typescript`, `react`) the store keeps `selfReportedLevel` (a level or `not-sure`),
+  `placementResult` (assessment id and version, suggested level, score, date), `skillEvidence`
+  (placement answers per skill id), `recommendedNext` (a snapshot of the suggested start),
+  `assessmentDate` and `userOverride`. The effective level is the learner's own override, else the
+  latest placement suggestion, else the self-report. A new placement never replaces an override;
+  the result screen offers "Use the suggestion" instead. Exercise completions are not copied into
+  the competency store; skill overviews derive them from progress.
+- **Onboarding** (`components/home/path-chooser.tsx`): language → optional level (Beginner /
+  Familiar with basics / Advanced / Professional / Not sure) → start. "Skip for now" stores no
+  level. Levels for the other languages can be set in an optional disclosure or later on the
+  Progress page (`#levels`). Professional is labelled self-reported and leads to the deepest
+  available band.
+- **Placement check** (`content/placement/`, `lib/learning/placement.ts`, `/[lang]/placement/[id]`):
+  nine items per runnable language, three per level (predict the output, choose the fix, a small
+  coding task checked with the same isolated runners as lessons). Two of three correct passes a
+  level; after a failed level the check stops early. The result is `beginner`, `intermediate` or
+  `advanced` — never `professional` — and is presented as a suggestion, not a certificate.
+  `tests/placement.test.ts` runs every predict snippet and every proposed fix to verify the answers.
+- **Recommendations** (`lib/learning/recommend.ts`): `entryChapter` picks the first chapter of the
+  learner's band (beginners start at the very beginning for a quick first success);
+  `checkpointBefore` offers the checkpoint for the band being skipped; `nextTask` returns the
+  first unfinished exercise from the suggested start, then earlier gaps. The home page continues an
+  unfinished exercise first ("resume"), then the suggested start ("recommended"), then the next
+  unfinished one. The path, the course sidebar and the home page all use `nextTask`.
+- **Migration:** on first load after this feature, `migrateLearnerData` marks learners who already
+  had progress as `legacy` (no onboarding is forced on them; an optional, dismissible placement
+  prompt appears on the home page). Progress, XP, streaks, achievements, drafts and target dates
+  stay in their own stores and are not modified. Malformed or unknown-version competency data is
+  dropped by `parseCompetency`.
 
 ## Gamification
 
 All rules live in pure functions in `lib/gamification/` and are unit-tested.
 
-- **XP** (`xp.ts`): passed step 5, completed challenge 25, completed lab 50, completed chapter
-  bonus 50. Every award has an accomplishment id (`step:<exercise>:<step>`,
+- **XP** (`xp.ts`): passed step 5, completed challenge 25, completed lab or checkpoint 50,
+  completed chapter bonus 50 (regular chapters only). Every award has an accomplishment id (`step:<exercise>:<step>`,
   `exercise:<exercise>`, `chapter:<course>:<chapter>`); an id is awarded at most once, so
   re-checking, resetting code or re-visiting never adds XP again.
 - **Levels** (`levels.ts`): reaching level *L* needs `100·(L−1) + 25·(L−1)·(L−2)` total XP
@@ -224,7 +276,9 @@ All rules live in pure functions in `lib/gamification/` and are unit-tested.
   onboarding, the returning-learner home, completing challenges, XP without duplicates,
   level-up, chapter bonus, achievements, streaks, the daily goal, data migration and malformed
   storage, the learning path and keyboard navigation, EN/FI switching, dark mode, JS/Python
-  execution and timeouts, and a phone-sized layout.
+  execution and timeouts, a phone-sized layout, and (Milestone 3) level onboarding, skipping,
+  placement checks in both languages, reassessment, manual overrides, migration of older data and
+  keyboard-only level choice.
 - If styles in a production build look out of date, delete `.next/cache/turbopack` and build
   again. During this milestone one local build served an older `globals.css` from Turbopack's
   build cache; the cause could not be reproduced afterwards.

@@ -4,9 +4,10 @@ import { runJavaScript } from "@/lib/execution/javascript/engine";
 import { finalizeCheck } from "@/lib/execution/types";
 import { javascriptSolutions as baseSolutions } from "./fixtures/solutions";
 import { javascriptExpansionSolutions } from "./fixtures/solutions-expansion";
+import { javascriptM3Solutions } from "./fixtures/solutions-m3";
 import { isolatedAsyncFunction } from "./helpers/js-realm";
 
-const javascriptSolutions = [...baseSolutions, ...javascriptExpansionSolutions];
+const javascriptSolutions = [...baseSolutions, ...javascriptExpansionSolutions, ...javascriptM3Solutions];
 
 async function check(exerciseId: string, stepId: string, source: string) {
   const exercise = getExercise(exerciseId);

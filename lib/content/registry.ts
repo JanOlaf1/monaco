@@ -1,10 +1,14 @@
 import { javascriptCourse, pythonCourse, reactCourse, typescriptCourse } from "@/content/courses";
+import * as jsAdvanced from "@/content/exercises/javascript/advanced";
 import * as jsChapters1to5 from "@/content/exercises/javascript/chapters-1-5";
 import * as jsChapters6to10 from "@/content/exercises/javascript/chapters-6-10";
+import * as jsCheckpoints from "@/content/exercises/javascript/checkpoints";
 import { greetingFunctions } from "@/content/exercises/javascript/greeting-functions";
 import { weatherAdvisorLab } from "@/content/exercises/javascript/weather-advisor-lab";
+import * as pyAdvanced from "@/content/exercises/python/advanced";
 import * as pyChapters1to5 from "@/content/exercises/python/chapters-1-5";
 import * as pyChapters6to10 from "@/content/exercises/python/chapters-6-10";
+import * as pyCheckpoints from "@/content/exercises/python/checkpoints";
 import { shippingCostLab } from "@/content/exercises/python/shipping-cost-lab";
 import { variablesAndStrings } from "@/content/exercises/python/variables-and-strings";
 import type { ChapterDefinition, CourseDefinition, ExerciseDefinition } from "./types";
@@ -25,6 +29,10 @@ const exerciseList: ExerciseDefinition[] = [
   ...Object.values(jsChapters6to10),
   ...Object.values(pyChapters1to5),
   ...Object.values(pyChapters6to10),
+  ...Object.values(jsCheckpoints),
+  ...Object.values(jsAdvanced),
+  ...Object.values(pyCheckpoints),
+  ...Object.values(pyAdvanced),
 ];
 
 const coursesById = new Map(courseList.map((course) => [course.id, course]));
@@ -59,7 +67,8 @@ export function getCourseExerciseIds(courseId: string): string[] {
 export interface ExerciseContext {
   course: CourseDefinition;
   chapter: ChapterDefinition;
-  chapterNumber: number;
+  /** Null for checkpoints, which sit between numbered chapters. */
+  chapterNumber: number | null;
   /** 1-based position of the exercise within its chapter. */
   positionInChapter: number;
   exercise: ExerciseDefinition;
@@ -79,7 +88,10 @@ export function getExerciseContext(courseId: string, exerciseId: string): Exerci
   return {
     course,
     chapter,
-    chapterNumber: chapterIndex + 1,
+    chapterNumber:
+      chapter.kind === "checkpoint"
+        ? null
+        : course.chapters.slice(0, chapterIndex + 1).filter((candidate) => candidate.kind !== "checkpoint").length,
     positionInChapter: chapter.exerciseIds.indexOf(exercise.id) + 1,
     exercise,
     previousId: index > 0 ? ordered[index - 1] : undefined,

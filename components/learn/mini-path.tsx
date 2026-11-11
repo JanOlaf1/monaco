@@ -35,12 +35,12 @@ export function MiniPath({
                 done && "border-success bg-success text-white dark:text-bg",
                 current && !done && "ring-in border-accent bg-accent-soft text-accent",
                 !done && !current && "border-line bg-surface text-fg-subtle",
-                exercise.type === "lab" && "rounded-lg",
+                exercise.type !== "challenge" && "rounded-lg",
               )}
             >
               {done ? (
                 <Check className="size-4" aria-hidden="true" />
-              ) : exercise.type === "lab" ? (
+              ) : exercise.type !== "challenge" ? (
                 <FlaskConical className="size-4" aria-hidden="true" />
               ) : (
                 index + 1

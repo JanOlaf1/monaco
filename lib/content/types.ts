@@ -17,7 +17,14 @@ export type ProgrammingLanguage = "javascript" | "typescript" | "python" | "reac
 /** Monaco language ids used for editor files. */
 export type EditorLanguage = "javascript" | "typescript" | "python" | "html" | "css" | "json";
 
-export type Difficulty = "beginner" | "intermediate" | "advanced";
+/**
+ * Proficiency bands, shared by content (which band a chapter belongs to) and
+ * learners (self-reported or suggested level). Stable ids; labels live in the
+ * dictionaries. `professional` content does not exist yet, so professional
+ * learners are pointed at the deepest available band.
+ */
+export const SKILL_LEVELS = ["beginner", "intermediate", "advanced", "professional"] as const;
+export type SkillLevel = (typeof SKILL_LEVELS)[number];
 
 /**
  * - `challenge`: a micro-challenge focused on one concept. Usually one step;
@@ -25,8 +32,11 @@ export type Difficulty = "beginner" | "intermediate" | "advanced";
  * - `lab`: a larger assignment combining several concepts, with a list of
  *   requirements and many tests (exactly one step). Shown as a milestone
  *   ("boss") node on the learning path.
+ * - `checkpoint`: a lab-sized review of a whole band of chapters. Learners who
+ *   already know that material can use it to confirm it and move on; passing
+ *   it never marks the chapters it covers as completed.
  */
-export type ExerciseType = "challenge" | "lab";
+export type ExerciseType = "challenge" | "lab" | "checkpoint";
 
 export type AvailabilityStatus = "available" | "planned";
 
@@ -88,7 +98,6 @@ export interface ExerciseDefinition {
   chapterId: string;
   language: ProgrammingLanguage;
   type: ExerciseType;
-  difficulty: Difficulty;
   estimatedMinutes: number;
   title: LocalizedText;
   /** One or two sentences for cards and headers. */
@@ -96,7 +105,7 @@ export interface ExerciseDefinition {
   /** Markdown: what the concept is, why it matters and how it works. */
   concept: LocalizedText;
   objectives: LocalizedText[];
-  /** Lab user stories / requirements (inline markdown). */
+  /** Lab and checkpoint user stories / requirements (inline markdown). */
   requirements?: LocalizedText[];
   starterFiles: StarterFile[];
   /** Challenges have one or more steps; labs have exactly one. */
@@ -116,16 +125,41 @@ export type ChapterIcon =
   | "list"
   | "braces"
   | "type"
-  | "rocket";
+  | "rocket"
+  | "flag"
+  | "sparkles"
+  | "shield"
+  | "clock"
+  | "layers";
 
 /** Colour families for chapter themes (defined as design tokens in globals.css). */
 export type ChapterTone = "teal" | "sky" | "violet" | "amber" | "rose" | "lime" | "indigo" | "orange";
 
+/** Stable skill id, `<prefix>.<topic>` (e.g. `js.loops`). Defined in content/skills.ts. */
+export type SkillId = string;
+
+export interface SkillDefinition {
+  id: SkillId;
+  track: ProgrammingLanguage;
+  title: LocalizedText;
+}
+
 export interface ChapterDefinition {
   id: string;
+  /** Checkpoint chapters hold one checkpoint exercise between two bands. */
+  kind?: "checkpoint";
   title: LocalizedText;
   summary: LocalizedText;
   status: AvailabilityStatus;
+  /** The proficiency band this chapter belongs to. Bands follow each other in course order. */
+  level: SkillLevel;
+  /** Skills practised in this chapter (evidence for the learner's skill overview). */
+  skills: SkillId[];
+  /**
+   * Skills that are helpful to know first. Shown as a suggestion only:
+   * nothing on the platform is locked.
+   */
+  buildsOn?: SkillId[];
   theme: { icon: ChapterIcon; tone: ChapterTone };
   /** Ordered exercise ids. Empty for planned chapters. */
   exerciseIds: string[];

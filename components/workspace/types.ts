@@ -5,7 +5,8 @@ export interface WorkspaceNav {
   courseId: string;
   courseTitle: string;
   chapterTitle: string;
-  chapterNumber: number;
+  /** Null for checkpoints, which sit between numbered chapters. */
+  chapterNumber: number | null;
   chapterTheme: ChapterDefinition["theme"];
   /** 1-based position of this exercise in its chapter, and the chapter size. */
   positionInChapter: number;

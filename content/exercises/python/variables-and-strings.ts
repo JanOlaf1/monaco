@@ -12,7 +12,6 @@ export const variablesAndStrings: ExerciseDefinition = {
   chapterId: "py-strings",
   language: "python",
   type: "challenge",
-  difficulty: "beginner",
   estimatedMinutes: 15,
   title: {
     en: "Variables and strings",

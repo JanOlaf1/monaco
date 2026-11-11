@@ -103,7 +103,7 @@ async function CourseContent({ params }: { params: Params }) {
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="mx-auto w-full max-w-xl lg:mx-0">
-          <LearningPath course={course} />
+          <LearningPath course={course} hasPlacement={course.placement !== null} />
           {available ? <p className="mt-10 text-center text-xs text-fg-subtle">{dict.path.reviewAnytime}</p> : null}
         </div>
 

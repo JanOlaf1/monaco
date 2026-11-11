@@ -24,7 +24,6 @@ export const shippingCostLab: ExerciseDefinition = {
   chapterId: "py-conditions",
   language: "python",
   type: "lab",
-  difficulty: "beginner",
   estimatedMinutes: 25,
   title: {
     en: "Lab: Shipping cost calculator",

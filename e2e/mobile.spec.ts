@@ -28,3 +28,18 @@ test("onboarding, the path and the workspace are usable on a phone", async ({ pa
   await expect(page.getByText("Challenge complete!")).toBeVisible();
   expect(await tabs.count()).toBeGreaterThanOrEqual(3);
 });
+
+test("choosing a level and taking the placement check work on a phone", async ({ page }) => {
+  await page.goto("/en");
+  await page.getByRole("group", { name: /have you written/ }).getByText("Advanced", { exact: true }).click();
+  await expect(page.getByRole("link", { name: "Start at chapter 11" })).toBeInViewport({ ratio: 1 });
+
+  await page.goto("/en/placement/javascript");
+  await page.getByRole("button", { name: "Start the check" }).click();
+  await expect(page.getByText("Question 1 of 9")).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await page.getByLabel("10", { exact: true }).check();
+  await page.getByRole("button", { name: "Answer" }).click();
+  await expect(page.getByText("Correct!")).toBeVisible();
+});

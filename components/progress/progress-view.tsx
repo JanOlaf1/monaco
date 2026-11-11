@@ -12,6 +12,7 @@ import { Mascot } from "@/components/mascot/mascot";
 import { ButtonLink } from "@/components/ui/button";
 import { LanguageMark } from "@/components/ui/language-mark";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { SkillLevels } from "./skill-levels";
 import { cn } from "@/lib/cn";
 import { ACHIEVEMENTS } from "@/lib/gamification/achievements";
 import { buildAchievementContext } from "@/lib/gamification/engine";
@@ -92,6 +93,8 @@ export function ProgressView() {
           </div>
         </Panel>
       </div>
+
+      <SkillLevels />
 
       <Panel>
         <div className="mb-4 flex items-baseline justify-between gap-2">

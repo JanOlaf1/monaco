@@ -36,6 +36,7 @@ Syncing means adding a Firestore adapter and choosing the adapter per session:
 | Drafts   | `koodaamo:v1:drafts`   | `users/{uid}/drafts/{exerciseId}`    |
 | Schedule | `koodaamo:v1:schedule` | `users/{uid}/deadlines/{targetKey}`  |
 | Rewards  | `koodaamo:v1:gamification` | `users/{uid}/awards/{accomplishmentId}` + fields on `users/{uid}` (active days, best streak, achievements, daily goal) |
+| Levels   | `koodaamo:v1:competency` | `users/{uid}/tracks/{trackId}` (self-reported level, placement result, skill evidence, override) |
 | Profile  | –                      | `users/{uid}` (display name, locale) |
 
 - One document per exercise/deadline keeps writes small. Drafts are already debounced
@@ -45,6 +46,8 @@ Syncing means adding a Firestore adapter and choosing the adapter per session:
 - XP awards are keyed by accomplishment id (`step:…`, `exercise:…`, `chapter:…`), so merging
   devices is a union by id and can never double-count XP. Active days are a set union;
   achievements keep the earliest date; level and streak are recomputed, not stored.
+- Proficiency levels merge per track by the newest `updatedAt`; a manual override is never
+  replaced by a placement result from another device.
 - **First sign-in merge:** union of completed steps (keep the earliest `completedAt`), the
   newest draft by `updatedAt`, and the newest deadline by `updatedAt`. After merging, Firestore
   becomes the source of truth and localStorage acts as an offline cache.

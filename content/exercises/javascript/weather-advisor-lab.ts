@@ -17,7 +17,6 @@ export const weatherAdvisorLab: ExerciseDefinition = {
   chapterId: "js-functions",
   language: "javascript",
   type: "lab",
-  difficulty: "beginner",
   estimatedMinutes: 25,
   title: { en: "Lab: Weather advisor", fi: "Harjoitustyö: Sääneuvoja" },
   summary: {
