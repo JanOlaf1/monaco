@@ -47,6 +47,37 @@ a deterministic merge, a remote adapter, rules with tests, and the same engine p
 | Rewards | `koodaamo:v1:gamification` | `users/{uid}/awards/{accomplishmentId}` + summary fields | Union by accomplishment id (never double-counts XP); recompute level and streak |
 | Drafts | `koodaamo:v1:drafts` | `users/{uid}/drafts/{exerciseId}` | Newest `updatedAt`; save on check/blur, not per keystroke |
 | Schedule | `koodaamo:v1:schedule` | `users/{uid}/deadlines/{targetKey}` | Newest `updatedAt` |
+| Adventure (Code Archipelago) | `koodaamo:v1:adventure` | `users/{uid}/adventureEvents/{eventId}` + `users/{uid}/adventure/settings` | Union of ledger events by id; balance derived, never stored |
+
+### Requirements before syncing gamification (XP and the Code Archipelago)
+
+Do not sync these until every point below is implemented and tested:
+
+1. **Event identity:** reward ids are already deterministic (`crystal:exercise:<id>`,
+   `crystal:chapter:<id>`, `crystal:daily|weekly|review:<period>`, `quest:<kind>:<period>`,
+   `purchase:<itemId>`, `step:…`/`exercise:…`/`chapter:…` for XP). Cloud documents must use the
+   same ids as document ids so a merge is a set union and can never grant a reward twice.
+2. **Derived values stay derived:** crystal balance, XP total, level and streak are computed from
+   events, never written as numbers a client can inflate.
+3. **Spending:** a purchase must not be accepted when the merged balance would go below zero.
+   Two devices can each spend offline; the merge must detect an overdraft and resolve it
+   deterministically (for example keep the earliest purchases, return later ones, and tell the
+   learner). Rules cannot sum a ledger, so client-side trust remains (self-reported data).
+4. **Schema and migration:** versioned documents, a parser that drops invalid events (as
+   `parseAdventure` does locally), and a one-time upload of existing local events on first
+   sign-in with the same merge.
+5. **Security rules:** owner + verified email, per-event-kind schema validation (amounts fixed per
+   kind, ids matching their kind, sizes bounded), create-only events (no updates or deletes),
+   `serverUpdatedAt == request.time`, plus emulator tests.
+6. **Volume:** batch uploads, debounce writes, and keep reads to one query per session.
+
+Files that will need changes: `lib/sync/domains.ts` (flip `cloud`), new
+`lib/sync/adventure-doc.ts`, `lib/sync/adventure-merge.ts` and a remote adapter in
+`lib/firebase/`, a second engine instance in `lib/account/account-store.ts`,
+`lib/adventure/store.ts` and `lib/adventure/state.ts` (expose a merge-safe apply of remote events),
+`lib/gamification/state.ts` (the same for XP awards), `firestore.rules`,
+`tests/emulators/`, `e2e-cloud/integration.spec.ts`, and the account page texts in
+`lib/i18n/dictionaries/*.ts`.
 
 Client-written data is self-reported (grading runs in the browser). That is fine for personal
 progress; anything that must be trusted (certificates, rankings) needs server-side re-grading.

@@ -247,6 +247,10 @@ what is synced; the account page reads it. Details and console steps:
 - **Security rules** (`firestore.rules`): owner-only, verified email only, strict schema
   validation (ids, levels, scores, string sizes, per-skill evidence), `serverUpdatedAt ==
   request.time`, no deletes, everything else denied.
+- **Code Archipelago and XP stay local.** The adventure ledger (`koodaamo:v1:adventure`: crystals,
+  quests, cosmetics, equipped items) and XP/achievements (`koodaamo:v1:gamification`) are never
+  read or written by the sync code; signing up, signing in or out does not change them.
+  `e2e-cloud/integration.spec.ts` checks this, including that no rewards are granted twice.
 
 ## Gamification
 

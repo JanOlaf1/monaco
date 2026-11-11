@@ -407,6 +407,7 @@ export const en = {
       competency: "Skill levels and placement results",
       progress: "Completed challenges and course progress",
       rewards: "XP, achievements and streaks",
+      adventure: "Crystals, quests and avatar items",
       drafts: "Code you have written",
       schedule: "Target dates",
     },

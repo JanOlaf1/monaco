@@ -20,6 +20,10 @@ test("without Firebase configured, learning is fully local and nothing is sent t
   await page.goto("/en/account");
   await expect(page.getByText("Accounts are not available in this version of Koodaamo.")).toBeVisible();
   await expect(page.getByTestId("local-domains")).toContainText("Skill levels and placement results");
+  await expect(page.getByTestId("local-domains")).toContainText("Crystals, quests and avatar items");
   await expect(page.getByTestId("synced-domains")).toHaveCount(0);
+  // The Code Archipelago works without an account too.
+  await page.goto("/en/collection");
+  await expect(page.getByTestId("crystal-balance").first()).toBeVisible();
   expect(firebaseRequests).toEqual([]);
 });

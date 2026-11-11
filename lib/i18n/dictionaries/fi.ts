@@ -420,6 +420,7 @@ export const fi: Dictionary = {
       competency: "Osaamistasot ja tasotestien tulokset",
       progress: "Suoritetut haasteet ja kurssien edistyminen",
       rewards: "XP, saavutukset ja putket",
+      adventure: "Kristallit, tehtävät ja hahmon esineet",
       drafts: "Kirjoittamasi koodi",
       schedule: "Tavoitepäivät",
     },
