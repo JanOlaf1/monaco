@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import type { CosmeticId, CosmeticSlot } from "@/lib/adventure/catalog";
 
 export type MascotMood = "welcome" | "thinking" | "celebrating" | "encouraging";
 
@@ -87,6 +88,7 @@ export function Mascot({
   label,
   animate = false,
   className,
+  cosmetics,
 }: {
   mood?: MascotMood;
   size?: number;
@@ -95,6 +97,8 @@ export function Mascot({
   /** Play the mood's one-off entrance animation (respects reduced motion). */
   animate?: boolean;
   className?: string;
+  /** Optional earned accessories. The familiar base scarf and goggles remain part of Saku. */
+  cosmetics?: Partial<Record<CosmeticSlot, CosmeticId>>;
 }) {
   return (
     <svg
@@ -106,9 +110,15 @@ export function Mascot({
       aria-hidden={label ? undefined : true}
       className={cn("shrink-0 overflow-visible", animate && (mood === "celebrating" ? "mascot-bounce" : "mascot-pop"), className)}
       data-mood={mood}
+      data-cosmetics={Object.values(cosmetics ?? {}).sort().join(" ")}
     >
       {/* tail */}
       <path d="M110 134 C138 134 152 112 147 90 C145 81 133 83 134 92 C136 107 128 118 110 121 Z" fill={C.furDark} />
+      {cosmetics?.back === "backpack" ? <g>
+        <rect x={102} y={94} width={28} height={45} rx={9} fill="#497d70" stroke="#315b52" strokeWidth={3} />
+        <path d="M108 109 H124 M109 121 H123" stroke="#e8cd8f" strokeWidth={3} />
+        <path d="M111 94 V89 H122 V94" stroke="#315b52" strokeWidth={3} fill="none" />
+      </g> : null}
       {/* body */}
       <ellipse cx={80} cy={122} rx={38} ry={32} fill={C.fur} />
       <ellipse cx={80} cy={128} rx={24} ry={22} fill={C.cream} />
@@ -145,8 +155,9 @@ export function Mascot({
       ) : null}
 
       {/* scarf */}
-      <path d="M48 92 Q80 108 112 92 L112 101 Q80 117 48 101 Z" fill={C.scarf} />
-      <path d="M95 104 L104 124 L93 121 Z" fill={C.scarfDark} />
+      <path d="M48 92 Q80 108 112 92 L112 101 Q80 117 48 101 Z" fill={cosmetics?.neck === "scarf" ? "#387f89" : C.scarf} />
+      <path d="M95 104 L104 124 L93 121 Z" fill={cosmetics?.neck === "scarf" ? "#28616c" : C.scarfDark} />
+      {cosmetics?.neck === "scarf" ? <path d="M63 103 L67 108 M77 106 L81 110 M94 104 L98 108" stroke="#d9e9c0" strokeWidth={3} /> : null}
 
       {/* ears */}
       <circle cx={48} cy={36} r={9} fill={C.fur} />
@@ -164,10 +175,15 @@ export function Mascot({
 
       {/* goggles pushed up on the forehead */}
       <path d="M41 44 Q80 28 119 44" stroke={C.strap} strokeWidth={5} fill="none" strokeLinecap="round" />
-      <circle cx={68} cy={38} r={8} fill={C.lens} stroke={C.strap} strokeWidth={3} />
-      <circle cx={92} cy={38} r={8} fill={C.lens} stroke={C.strap} strokeWidth={3} />
+      <circle cx={68} cy={38} r={8} fill={cosmetics?.eyes === "goggles" ? "#b8dce9" : C.lens} stroke={cosmetics?.eyes === "goggles" ? "#c38a35" : C.strap} strokeWidth={3} />
+      <circle cx={92} cy={38} r={8} fill={cosmetics?.eyes === "goggles" ? "#b8dce9" : C.lens} stroke={cosmetics?.eyes === "goggles" ? "#c38a35" : C.strap} strokeWidth={3} />
       <circle cx={65.5} cy={35.5} r={2} fill="#fff" opacity={0.8} />
       <circle cx={89.5} cy={35.5} r={2} fill="#fff" opacity={0.8} />
+      {cosmetics?.head === "hat" ? <g>
+        <path d="M47 28 L54 10 Q80 1 106 10 L113 28 Z" fill="#375b7b" stroke="#27445f" strokeWidth={2} />
+        <path d="M42 28 Q80 37 118 28" stroke="#d7b36d" strokeWidth={6} strokeLinecap="round" fill="none" />
+        <path d="M80 14 L84 20 L80 25 L76 20 Z" fill="#e6cb87" />
+      </g> : null}
 
       {mood === "encouraging" ? (
         <g stroke={C.furDark} strokeWidth={2.4} strokeLinecap="round" fill="none">

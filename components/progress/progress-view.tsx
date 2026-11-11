@@ -1,5 +1,7 @@
 "use client";
 
+import { CrystalBalance } from "@/components/adventure/crystal-balance";
+
 import { ArrowRight, CalendarDays, CircleCheck } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -51,6 +53,7 @@ export function ProgressView() {
 
   return (
     <div className="mt-8 space-y-6">
+      <CrystalBalance />
       <div className="grid gap-4 md:grid-cols-3">
         <Panel title={dict.progressPage.levelTitle}>
           <LevelProgress level={summary.level} />

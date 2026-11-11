@@ -80,6 +80,7 @@ test("the optional daily goal can be set and is celebrated when reached", async 
   await seedLearner(page, { completed: [], extra: { preferredCourse: "javascript" } });
   await page.goto("/en");
   await expect(page.getByRole("heading", { name: "Welcome back!" })).toBeVisible();
+  await page.getByRole("button", { name: "Show more stats" }).click();
   await page.getByRole("radio", { name: "1 challenge a day" }).click();
   await expect(page.getByText("0/1 today")).toBeVisible();
 

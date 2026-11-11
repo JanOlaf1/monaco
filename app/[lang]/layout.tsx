@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AccountSync } from "@/components/account/account-sync";
 import { CelebrationToasts } from "@/components/gamification/celebration-toasts";
+import { AdventureSync } from "@/components/adventure/adventure-sync";
+import { ChapterMessage } from "@/components/adventure/chapter-message";
 import { InlineScript } from "@/components/layout/inline-script";
 import { SiteHeader } from "@/components/layout/site-header";
 import { LearnerSync } from "@/components/learner/learner-sync";
@@ -68,7 +70,9 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
             {children}
             <LearnerSync />
             <AccountSync />
+            <AdventureSync />
             <CelebrationToasts />
+            <ChapterMessage />
           </CatalogProvider>
         </I18nProvider>
       </body>
