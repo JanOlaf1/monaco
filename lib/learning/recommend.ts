@@ -1,7 +1,13 @@
 import type { CatalogChapter, CatalogCourse, CatalogExercise, CatalogSkill } from "@/lib/content/catalog";
 import { SKILL_LEVELS, type SkillLevel } from "@/lib/content/types";
 import { isExerciseCompleted, type ProgressState } from "@/lib/progress/progress";
-import { effectiveLevel, type RecommendationReason, type RecommendedNext, type TrackCompetency } from "./competency";
+import {
+  effectiveLevel,
+  type LevelSource,
+  type RecommendationReason,
+  type RecommendedNext,
+  type TrackCompetency,
+} from "./competency";
 
 /**
  * Pure recommendation rules. Suggestions only: every chapter stays open, and
@@ -128,4 +134,17 @@ export function skillStandings(
 /** The level used for suggestions on a course, if the learner has one. */
 export function courseLevel(track: TrackCompetency | undefined): SkillLevel | null {
   return effectiveLevel(track)?.level ?? null;
+}
+
+const REASONS: Record<LevelSource, RecommendationReason> = { override: "override", placement: "placement", self: "self-report" };
+
+/** The suggested start for a track's effective level, or null without a level or playable course. */
+export function recommendForTrack(
+  course: CatalogCourse | undefined,
+  track: TrackCompetency | undefined,
+  now: string,
+): RecommendedNext | null {
+  const effective = effectiveLevel(track);
+  if (!course || course.exerciseIds.length === 0 || !effective) return null;
+  return recommendStart(course, effective.level, REASONS[effective.source], now);
 }

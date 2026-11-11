@@ -1,0 +1,223 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Koodaamo is local-first. Only the learner's proficiency per language
+// ("competency") is synchronised; everything else stays in the browser.
+//
+// Collection: users/{uid}/competency
+// Document ID: track id, one of 'python', 'javascript', 'typescript', 'react'
+// Owner: the {uid} path segment (there is no uid field; ownership cannot be spoofed)
+// Fields (all required, no others allowed):
+//   - schemaVersion: int (== 1)
+//   - track: string (== document id)
+//   - selfReportedLevel: string | null ('beginner'|'intermediate'|'advanced'|'professional'|'not-sure')
+//   - userOverride: string | null ('beginner'|'intermediate'|'advanced'|'professional')
+//   - placementResult: map | null
+//       assessmentId: string (== 'placement-' + track), version: int 1..1000,
+//       level: 'beginner'|'intermediate'|'advanced' (never 'professional'),
+//       correct, answered, total: int, 0 <= correct <= answered <= total <= 100,
+//       stoppedEarly: bool, completedAt: ISO 8601 string
+//   - skillEvidence: map (max 16 entries), keys = skill ids of this track only,
+//       values: { correct: int, total: int (0..100), source: 'placement', at: ISO 8601 string }
+//   - recommendedNext: map | null
+//       courseId: string (== track), chapterId, exerciseId: slug strings (<= 64),
+//       level: level, reason: 'first-success'|'self-report'|'placement'|'override',
+//       at: ISO 8601 string
+//   - assessmentDate: ISO 8601 string | null
+//   - updatedAt: ISO 8601 string (client time of the last local change)
+//   - serverUpdatedAt: timestamp (must equal request.time, i.e. serverTimestamp())
+//
+// Access: only the signed-in owner with a verified email address may read
+// (get/list) and write (create/update). Deletes are not used by the app and
+// are denied. Everything else in the database is denied.
+//
+// Skill ids below must match content/skills.ts (tests/emulators checks this).
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Sync is only available to verified email addresses.
+    function isVerified() {
+      return request.auth.token.email_verified == true;
+    }
+
+    function isTrack(value) {
+      return value in ['python', 'javascript', 'typescript', 'react'];
+    }
+
+    function isLevel(value) {
+      return value in ['beginner', 'intermediate', 'advanced', 'professional'];
+    }
+
+    function isIsoDate(value) {
+      return value is string
+        && value.size() <= 40
+        && value.matches('^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?Z$');
+    }
+
+    function isSlug(value) {
+      return value is string && value.size() >= 1 && value.size() <= 64 && value.matches('^[a-z0-9-]+$');
+    }
+
+    function isCount(value) {
+      return value is int && value >= 0 && value <= 100;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidPlacement(p, track) {
+      return p == null || (
+        p is map
+        && p.keys().hasOnly(['assessmentId', 'version', 'level', 'correct', 'answered', 'total', 'stoppedEarly', 'completedAt'])
+        && p.keys().hasAll(['assessmentId', 'version', 'level', 'correct', 'answered', 'total', 'stoppedEarly', 'completedAt'])
+        && p.assessmentId == 'placement-' + track
+        && p.version is int && p.version >= 1 && p.version <= 1000
+        && p.level in ['beginner', 'intermediate', 'advanced']
+        && isCount(p.correct) && isCount(p.answered) && isCount(p.total)
+        && p.correct <= p.answered && p.answered <= p.total
+        && p.stoppedEarly is bool
+        && isIsoDate(p.completedAt)
+      );
+    }
+
+    function isValidRecommendation(r, track) {
+      return r == null || (
+        r is map
+        && r.keys().hasOnly(['courseId', 'chapterId', 'exerciseId', 'level', 'reason', 'at'])
+        && r.keys().hasAll(['courseId', 'chapterId', 'exerciseId', 'level', 'reason', 'at'])
+        && r.courseId == track
+        && isSlug(r.chapterId)
+        && isSlug(r.exerciseId)
+        && isLevel(r.level)
+        && r.reason in ['first-success', 'self-report', 'placement', 'override']
+        && isIsoDate(r.at)
+      );
+    }
+
+    function isValidEvidenceEntry(e) {
+      return e is map
+        && e.keys().hasOnly(['correct', 'total', 'source', 'at'])
+        && e.keys().hasAll(['correct', 'total', 'source', 'at'])
+        && isCount(e.correct) && isCount(e.total) && e.correct <= e.total
+        && e.source == 'placement'
+        && isIsoDate(e.at);
+    }
+
+    // An absent key is fine; a present key must hold a valid entry.
+    function evidenceOk(m, skill) {
+      return !(skill in m) || isValidEvidenceEntry(m[skill]);
+    }
+
+    function pythonSkills() {
+      return ['py.output', 'py.variables', 'py.numbers', 'py.booleans', 'py.conditions', 'py.functions',
+              'py.loops', 'py.collections', 'py.text', 'py.problem-solving', 'py.comprehensions',
+              'py.errors', 'py.classes'];
+    }
+
+    function javascriptSkills() {
+      return ['js.output', 'js.variables', 'js.operators', 'js.conditions', 'js.functions', 'js.loops',
+              'js.arrays', 'js.objects', 'js.strings', 'js.problem-solving', 'js.array-methods',
+              'js.errors', 'js.async'];
+    }
+
+    function typescriptSkills() {
+      return ['ts.annotations', 'ts.objects', 'ts.unions'];
+    }
+
+    function reactSkills() {
+      return ['react.components', 'react.props', 'react.state'];
+    }
+
+    function isValidPythonEvidence(m) {
+      return m.keys().hasOnly(pythonSkills())
+        && evidenceOk(m, 'py.output') && evidenceOk(m, 'py.variables') && evidenceOk(m, 'py.numbers')
+        && evidenceOk(m, 'py.booleans') && evidenceOk(m, 'py.conditions') && evidenceOk(m, 'py.functions')
+        && evidenceOk(m, 'py.loops') && evidenceOk(m, 'py.collections') && evidenceOk(m, 'py.text')
+        && evidenceOk(m, 'py.problem-solving') && evidenceOk(m, 'py.comprehensions')
+        && evidenceOk(m, 'py.errors') && evidenceOk(m, 'py.classes');
+    }
+
+    function isValidJavascriptEvidence(m) {
+      return m.keys().hasOnly(javascriptSkills())
+        && evidenceOk(m, 'js.output') && evidenceOk(m, 'js.variables') && evidenceOk(m, 'js.operators')
+        && evidenceOk(m, 'js.conditions') && evidenceOk(m, 'js.functions') && evidenceOk(m, 'js.loops')
+        && evidenceOk(m, 'js.arrays') && evidenceOk(m, 'js.objects') && evidenceOk(m, 'js.strings')
+        && evidenceOk(m, 'js.problem-solving') && evidenceOk(m, 'js.array-methods')
+        && evidenceOk(m, 'js.errors') && evidenceOk(m, 'js.async');
+    }
+
+    function isValidTypescriptEvidence(m) {
+      return m.keys().hasOnly(typescriptSkills())
+        && evidenceOk(m, 'ts.annotations') && evidenceOk(m, 'ts.objects') && evidenceOk(m, 'ts.unions');
+    }
+
+    function isValidReactEvidence(m) {
+      return m.keys().hasOnly(reactSkills())
+        && evidenceOk(m, 'react.components') && evidenceOk(m, 'react.props') && evidenceOk(m, 'react.state');
+    }
+
+    function isValidSkillEvidence(m, track) {
+      return m is map && m.size() <= 16 && (
+        (track == 'python' && isValidPythonEvidence(m))
+        || (track == 'javascript' && isValidJavascriptEvidence(m))
+        || (track == 'typescript' && isValidTypescriptEvidence(m))
+        || (track == 'react' && isValidReactEvidence(m))
+      );
+    }
+
+    function isValidCompetency(data, track) {
+      return data.keys().hasOnly(['schemaVersion', 'track', 'selfReportedLevel', 'userOverride', 'placementResult',
+                                  'skillEvidence', 'recommendedNext', 'assessmentDate', 'updatedAt', 'serverUpdatedAt'])
+        && data.keys().hasAll(['schemaVersion', 'track', 'selfReportedLevel', 'userOverride', 'placementResult',
+                               'skillEvidence', 'recommendedNext', 'assessmentDate', 'updatedAt', 'serverUpdatedAt'])
+        && data.schemaVersion == 1
+        && data.track == track
+        && (data.selfReportedLevel == null || isLevel(data.selfReportedLevel) || data.selfReportedLevel == 'not-sure')
+        && (data.userOverride == null || isLevel(data.userOverride))
+        && isValidPlacement(data.placementResult, track)
+        && isValidSkillEvidence(data.skillEvidence, track)
+        && isValidRecommendation(data.recommendedNext, track)
+        && (data.assessmentDate == null || isIsoDate(data.assessmentDate))
+        && isIsoDate(data.updatedAt)
+        && data.serverUpdatedAt == request.time;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId}/competency/{track} {
+      allow get: if isOwner(userId) && isVerified() && isTrack(track);
+      // The app reads the whole (at most four documents) collection once per session.
+      allow list: if isOwner(userId) && isVerified();
+      allow create, update: if isOwner(userId)
+        && isVerified()
+        && isTrack(track)
+        && isValidCompetency(request.resource.data, track);
+      allow delete: if false;
+    }
+
+    // Default deny for everything else (including users/{userId} itself).
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

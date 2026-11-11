@@ -1,113 +1,59 @@
 # Firebase integration plan
 
-**Status:** Only Firebase App Hosting is configured (`firebase.json`, `apphosting.yaml`,
-`.firebaserc`). Firebase Authentication and Cloud Firestore are **not** enabled, and no code
-initialises Firebase. The `firebase` npm package is installed but unused. Everything below
-requires explicit approval before any console change, deployment or billable resource.
+**Status (2026-11-11):** Optional accounts with Firebase Authentication (email and password) are
+implemented, and **only the competency model** (skill levels, placement results and related
+fields) is synchronised to Cloud Firestore. All other learner data is still local to the browser.
+Setup and deployment steps: [FIREBASE_SETUP.md](FIREBASE_SETUP.md). Nothing is deployed
+automatically.
 
 ## Principles
 
 - Learning, grading and deadlines keep working without an account. Signing in only adds
-  syncing across devices.
-- Firebase is initialised lazily, only in code paths that need it (account UI and the
-  Firestore adapter), never in the root layout or shared modules.
-- No credentials in the repository. The web config is provided through App Hosting
-  environment variables (`apphosting.yaml` → `env`, `availability: [BUILD, RUNTIME]`) and
-  `.env.local` for development (git-ignored). Server-only secrets, if ever needed, go to
-  Cloud Secret Manager via `firebase apphosting:secrets:set`.
+  syncing across devices. No anonymous Firebase accounts are created.
+- Firebase is loaded lazily: only on the account page, or when this browser signed in before.
+  Learners who never sign in do not download the SDK.
+- No credentials in the repository. The web config comes from App Hosting
+  (`FIREBASE_WEBAPP_CONFIG` → SDK autoinit) or `.env.local` for development.
+- Never overwrite valid local data: merges are deterministic, keep the newest placement result
+  and any manual choice, and ask the learner when two choices disagree.
+- Only verified email addresses can read or write cloud data (enforced by the rules).
 
-## Phase 1 — Authentication
+## Implemented: competency sync
 
-1. Enable Authentication in the Firebase console (Email link and/or Google provider).
-2. Add `lib/firebase/client.ts` that calls `initializeApp` on first use (client only).
-3. Add an account menu (sign in / sign out). Keep pages static: auth state is read on the
-   client, so the prerendered shell does not depend on cookies.
-4. Server-side session verification is only needed for features that must be trusted on the
-   server (not needed for progress sync).
+| Piece | Where |
+| ----- | ----- |
+| Cloud document shape and validation | `lib/sync/competency-doc.ts` (`users/{uid}/competency/{track}`, schema version 1, `updatedAt`, `serverUpdatedAt`) |
+| Deterministic merge and conflicts | `lib/sync/competency-merge.ts` |
+| Sync engine (read once per session, debounced writes of changed tracks only, offline/denied handling) | `lib/sync/competency-sync.ts` |
+| Firestore adapter (Firestore Lite) | `lib/firebase/competency-remote.ts` |
+| Auth, session and UI state | `lib/account/account-store.ts`, `components/account/*`, `/[lang]/account` |
+| Security rules and tests | `firestore.rules`, `tests/emulators/` |
 
-## Phase 2 — Firestore and synchronisation
+Merge rules per track: data present on one side is kept; the placement result with the later
+`completedAt` wins together with its skill evidence and assessment date; `selfReportedLevel` and
+`userOverride` merge when equal or present on one side only, and two different values become a
+conflict the learner resolves on the account page (until then the device keeps its value and that
+track is not uploaded); `recommendedNext` is recomputed.
 
-The UI already talks to stores through `PersistenceAdapter` (`lib/storage/adapter.ts`).
-Syncing means adding a Firestore adapter and choosing the adapter per session:
+## Next domains (planned, not synced yet)
 
-| Store    | Local key              | Firestore path                       |
-| -------- | ---------------------- | ------------------------------------ |
-| Progress | `koodaamo:v1:progress` | `users/{uid}/progress/{exerciseId}`  |
-| Drafts   | `koodaamo:v1:drafts`   | `users/{uid}/drafts/{exerciseId}`    |
-| Schedule | `koodaamo:v1:schedule` | `users/{uid}/deadlines/{targetKey}`  |
-| Rewards  | `koodaamo:v1:gamification` | `users/{uid}/awards/{accomplishmentId}` + fields on `users/{uid}` (active days, best streak, achievements, daily goal) |
-| Levels   | `koodaamo:v1:competency` | `users/{uid}/tracks/{trackId}` (self-reported level, placement result, skill evidence, override) |
-| Profile  | –                      | `users/{uid}` (display name, locale) |
+`lib/sync/domains.ts` lists every domain and whether it is synced; the account page reads it, so
+the UI cannot claim more than is implemented. Each new domain needs a document shape and parser,
+a deterministic merge, a remote adapter, rules with tests, and the same engine pattern.
 
-- One document per exercise/deadline keeps writes small. Drafts are already debounced
-  (400 ms). Increase this for Firestore, or save on blur/check, to limit write costs.
-- Course completion is derived from exercise progress, so there is no separate copy that could
-  disagree.
-- XP awards are keyed by accomplishment id (`step:…`, `exercise:…`, `chapter:…`), so merging
-  devices is a union by id and can never double-count XP. Active days are a set union;
-  achievements keep the earliest date; level and streak are recomputed, not stored.
-- Proficiency levels merge per track by the newest `updatedAt`; a manual override is never
-  replaced by a placement result from another device.
-- **First sign-in merge:** union of completed steps (keep the earliest `completedAt`), the
-  newest draft by `updatedAt`, and the newest deadline by `updatedAt`. After merging, Firestore
-  becomes the source of truth and localStorage acts as an offline cache.
-- `subscribe()` maps to `onSnapshot`, so other tabs and devices update live.
+| Domain | Local key | Planned Firestore path | Merge idea |
+| ------ | --------- | ---------------------- | ---------- |
+| Progress | `koodaamo:v1:progress` | `users/{uid}/progress/{exerciseId}` | Union of completed steps, earliest `completedAt` |
+| Rewards | `koodaamo:v1:gamification` | `users/{uid}/awards/{accomplishmentId}` + summary fields | Union by accomplishment id (never double-counts XP); recompute level and streak |
+| Drafts | `koodaamo:v1:drafts` | `users/{uid}/drafts/{exerciseId}` | Newest `updatedAt`; save on check/blur, not per keystroke |
+| Schedule | `koodaamo:v1:schedule` | `users/{uid}/deadlines/{targetKey}` | Newest `updatedAt` |
 
-### Security Rules (draft — validate with the emulator before use)
+Client-written data is self-reported (grading runs in the browser). That is fine for personal
+progress; anything that must be trusted (certificates, rankings) needs server-side re-grading.
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    function isOwner(uid) {
-      return request.auth != null && request.auth.uid == uid;
-    }
+## Still open
 
-    match /users/{uid} {
-      allow read, delete: if isOwner(uid);
-      allow create, update: if isOwner(uid)
-        && request.resource.data.keys().hasOnly(['displayName', 'locale', 'createdAt', 'updatedAt'])
-        && request.resource.data.locale in ['en', 'fi'];
-
-      match /progress/{exerciseId} {
-        allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid)
-          && request.resource.data.keys().hasOnly(['completedStepIds', 'currentStepId', 'completedAt', 'updatedAt'])
-          && request.resource.data.completedStepIds is list
-          && request.resource.data.completedStepIds.size() <= 50;
-      }
-
-      match /drafts/{exerciseId} {
-        allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid)
-          && request.resource.data.keys().hasOnly(['files', 'updatedAt'])
-          && request.resource.data.files is map
-          && request.resource.data.files.size() <= 10;
-      }
-
-      match /deadlines/{key} {
-        allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid)
-          && request.resource.data.keys().hasOnly(['target', 'dueDate', 'createdAt', 'updatedAt'])
-          && request.resource.data.dueDate is string
-          && request.resource.data.dueDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
-          && request.resource.data.target.type in ['course', 'exercise'];
-      }
-    }
-
-    // Everything else is denied by default.
-  }
-}
-```
-
-Note that client-written progress is self-reported (grading runs in the browser). That is
-fine for personal progress. Anything that must be trusted, such as certificates or
-leaderboards, requires server-side re-grading and is out of scope.
-
-## Needed later (not done)
-
-- Enable Authentication providers and Cloud Firestore (choose a region; Standard edition).
-- Add the web app config as App Hosting environment variables.
-- Deploy `firestore.rules` (and indexes, if queries need them) with `firebase deploy --only firestore`.
-- Add a Firebase Emulator Suite setup for local development and rules tests.
-- Check pricing: Firestore free-tier quotas versus the expected write volume from drafts.
+- Deploy `firestore.rules` to `monaco-7bf62` (see the setup guide) — requires approval.
+- Account deletion ("delete my data"): the rules deny deletes today; add a reviewed path
+  (for example a callable function or the Delete User Data extension) before offering it.
+- Google sign-in, App Check, and syncing the remaining domains.

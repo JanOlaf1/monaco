@@ -146,7 +146,8 @@ function parseRecommendation(value: unknown): RecommendedNext | null {
   return { courseId, chapterId, exerciseId, level, reason: reason as RecommendationReason, at };
 }
 
-function parseTrack(value: unknown): TrackCompetency | null {
+/** Validate one stored track (shared by local storage and cloud documents). */
+export function parseTrack(value: unknown): TrackCompetency | null {
   if (!isRecord(value)) return null;
   const self = value.selfReportedLevel;
   return {

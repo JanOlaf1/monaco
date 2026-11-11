@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Emulator-backed e2e build output (npm run build:e2e-cloud).
+    ".next-cloud-e2e/**",
     // Generated copies of Monaco/Pyodide (scripts/copy-runtime-assets.mjs).
     "public/vendor/**",
   ]),

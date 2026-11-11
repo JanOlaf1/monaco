@@ -46,3 +46,10 @@ next-env.d.ts
 # Playwright
 /test-results/
 /playwright-report/
+
+# Firebase emulator logs
+firebase-debug.log
+firestore-debug.log
+
+# Emulator-backed e2e build (npm run build:e2e-cloud)
+/.next-cloud-e2e/

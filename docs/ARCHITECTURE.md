@@ -15,6 +15,8 @@ lib/execution/          Code runners (JS + Python), harness, shared types
 lib/gamification/       Pure XP, level, streak, achievement and daily-goal logic
 lib/learning/           Proficiency levels, placement scoring, recommendations (pure)
 content/placement/      Placement checks per runnable language (data only)
+lib/sync/               Cloud sync: document schema, deterministic merge, engine, domain list
+lib/firebase/, lib/account/   Optional Firebase Auth + Firestore Lite (lazy), account state
 lib/i18n/               Locales, typed UI dictionaries, formatting helpers
 lib/progress/, lib/schedule/   Pure learner-state logic (progress, drafts, deadlines)
 lib/storage/, lib/learner/     Persistence adapter, stores, hooks, learner summary
@@ -22,6 +24,7 @@ public/workers/         Static ES-module Python worker (not bundled, see below)
 scripts/                Copies Monaco + Pyodide into public/vendor at dev/build time
 tests/                  Vitest unit tests (grading, harness, content, gamification, state)
 e2e/                    Playwright browser tests against the production build
+e2e-cloud/, tests/emulators/  Account and sync tests against the Firebase Emulator Suite
 ```
 
 Routes: `/[lang]` (home), `/[lang]/courses` (catalog), `/[lang]/courses/[courseId]` (visual
@@ -219,6 +222,29 @@ level**, which only measures effort on the platform; the two never feed each oth
   stay in their own stores and are not modified. Malformed or unknown-version competency data is
   dropped by `parseCompetency`.
 
+## Optional accounts and cloud sync
+
+Accounts never gate learning. Firebase Authentication (email and password, with email
+verification and password reset) is optional, and only the **competency model** is synced to
+Cloud Firestore (`users/{uid}/competency/{track}`). `lib/sync/domains.ts` is the single list of
+what is synced; the account page reads it. Details and console steps:
+[FIREBASE_SETUP.md](FIREBASE_SETUP.md) and [FIREBASE_PLAN.md](FIREBASE_PLAN.md).
+
+- **Configuration** (`lib/firebase/config.ts`): App Hosting's `FIREBASE_WEBAPP_CONFIG`
+  (Firebase SDK autoinit) or `NEXT_PUBLIC_FIREBASE_*` in `.env.local`. Without either, the
+  account entry is hidden and the app never contacts Firebase.
+- **Lazy loading** (`lib/firebase/client.ts`): the SDK (Auth + Firestore Lite) loads only on
+  the account page, or when this browser signed in before (a `"1"` hint in local storage;
+  Firebase keeps its own session tokens, the app stores no passwords or tokens).
+- **Sync** (`lib/sync/`): read once per session after the local store has loaded, merge
+  deterministically (newest placement result with its evidence, manual choices kept, differing
+  choices become conflicts the learner resolves), then write only changed tracks, debounced.
+  Failures never change local data; the status shows offline/denied/error and retries on
+  `online` or "Sync now". Signing out stops syncing and keeps local data.
+- **Security rules** (`firestore.rules`): owner-only, verified email only, strict schema
+  validation (ids, levels, scores, string sizes, per-skill evidence), `serverUpdatedAt ==
+  request.time`, no deletes, everything else denied.
+
 ## Gamification
 
 All rules live in pure functions in `lib/gamification/` and are unit-tested.
@@ -279,6 +305,10 @@ All rules live in pure functions in `lib/gamification/` and are unit-tested.
   execution and timeouts, a phone-sized layout, and (Milestone 3) level onboarding, skipping,
   placement checks in both languages, reassessment, manual overrides, migration of older data and
   keyboard-only level choice.
+- `npm run test:rules` runs the security-rules tests and real-SDK sync tests against the Auth
+  and Firestore emulators (demo project, Firebase CLI and Java required).
+  `npm run build:e2e-cloud && npm run test:e2e:cloud` runs the account UI in a browser against
+  the emulators, using a separate `.next-cloud-e2e` build.
 - If styles in a production build look out of date, delete `.next/cache/turbopack` and build
   again. During this milestone one local build served an older `globals.css` from Turbopack's
   build cache; the cause could not be reproduced afterwards.
