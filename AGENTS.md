@@ -89,3 +89,42 @@ At the end of a task, briefly report:
 4. **Next:** the smallest logical follow-up, only if useful.
 
 If you are uncertain, inspect the code and state the uncertainty instead of guessing. Prioritize working functionality, simplicity, security and a polished learning experience over adding more features.
+
+
+## Git Commit Policy
+
+After completing each user prompt or development task, you MUST create a Git commit containing the changes made for that task.
+
+Rules:
+
+1. Run all relevant tests, linting, and TypeScript checks before committing.
+2. Fix any issues introduced by your changes before creating the commit.
+3. Stage only files relevant to the completed task. Never blindly stage unrelated changes.
+4. Never commit `.env` files, secrets, credentials, build artifacts, or unnecessary generated files.
+5. Use clear, descriptive commit messages following Conventional Commits:
+   - `feat: implement user skill assessment`
+   - `feat: add XP and gem rewards`
+   - `fix: resolve Monaco editor rendering issue`
+   - `refactor: improve exercise validation architecture`
+   - `test: add Playwright coverage for learning paths`
+6. Create exactly one logical commit per completed user prompt whenever practical.
+7. Do not amend previous commits or rewrite Git history unless explicitly requested.
+8. Never force-push.
+9. Do not automatically push commits to GitHub unless the user explicitly requests it.
+10. Do not deploy the application automatically.
+
+Branch and directory workflow:
+
+- The project lives in one local directory. Do not create additional worktrees or project copies unless the user asks for one.
+- Develop each new milestone on a feature branch (for example `feat/typescript-execution`) created from the latest `main`.
+- Merge a feature branch into `main` only after its typecheck, lint, tests and build have passed, preferring a fast-forward, and only when the user asks for the merge.
+- Keep existing branches and history; do not squash or rewrite commits that are already on `main`.
+- Never deploy to Firebase App Hosting or change Firebase settings as part of a commit, merge or push.
+
+Before finishing each task, report:
+- What was implemented.
+- Which tests were executed and their results.
+- The Git commit hash and commit message.
+- Any known issues or unfinished work.
+
+**Important:** Creating a local Git commit is mandatory after each successfully completed development task. A Git push requires separate authorization.
