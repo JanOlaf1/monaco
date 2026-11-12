@@ -4,7 +4,7 @@ An interactive, bilingual (English / Finnish) coding course platform. Learners f
 visual, chapter-based learning path of short challenges and larger labs, write real code in
 Monaco Editor, run it, and get per-requirement feedback from automated tests.
 
-- **Python** (31 exercises) and **JavaScript** (30 exercises) are fully interactive, each in
+- **Python**  and **JavaScript** are fully interactive, each in
   13 chapters across beginner, intermediate and advanced bands, with a checkpoint between bands
   (code runs in Web Workers; Python uses Pyodide). See
   [docs/CONTENT_COVERAGE.md](docs/CONTENT_COVERAGE.md).
